@@ -29,7 +29,8 @@ class ProcessingRecoveryIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         jobId,
-                        "document-" + UUID.randomUUID()
+                        "document-" + UUID.randomUUID(),
+                        "invoice.pdf"
                 );
 
         repository.save(job);

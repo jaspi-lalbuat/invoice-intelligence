@@ -1,14 +1,7 @@
 package com.jasper.invoice.infrastructure.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jasper.invoice.domain.model.InvoiceProcessingJob;
-import com.jasper.invoice.domain.model.ProcessingStatus;
-import com.jasper.invoice.domain.model.Invoice;
-import com.jasper.invoice.domain.model.InvoiceLineItem;
-import com.jasper.invoice.domain.model.Party;
-import com.jasper.invoice.domain.model.TaxBreakdown;
-import com.jasper.invoice.infrastructure.persistence.InvoiceProcessingJobEntity;
-import com.jasper.invoice.infrastructure.persistence.InvoiceProcessingJobMapper;
+import com.jasper.invoice.domain.model.*;
 import com.jasper.invoice.domain.validation.InvoiceValidationResult;
 import com.jasper.invoice.domain.validation.ValidationStatus;
 import org.junit.jupiter.api.Test;
@@ -79,6 +72,7 @@ class InvoiceProcessingJobMapperTest {
                         invoice,
                         validation,
                         documentReference,
+                        "invoice.pdf",
                         0,
                         leaseUntil,
                         Instant.now(),
@@ -99,5 +93,7 @@ class InvoiceProcessingJobMapperTest {
                 restored.validationResult()
         );
         assertEquals(original.retryCount(), restored.retryCount());
+        assertEquals(original.documentReference(), restored.documentReference());
+        assertEquals(original.originalFileName(), restored.originalFileName());
     }
 }

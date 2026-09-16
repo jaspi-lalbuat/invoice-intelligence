@@ -45,7 +45,7 @@ class InvoiceJobCreationServiceTest {
                 .thenReturn("{\"jobId\":\"test\"}");
 
         InvoiceProcessingJob job =
-                service.createJob(documentReference);
+                service.createJob(documentReference, "invoice.pdf");
 
         assertNotNull(job);
         assertNotNull(job.id());
@@ -68,7 +68,7 @@ class InvoiceJobCreationServiceTest {
                 .thenReturn("{\"jobId\":\"test\"}");
 
         InvoiceProcessingJob job =
-                service.createJob(documentReference);
+                service.createJob(documentReference, "invoice.pdf");
 
         verify(outboxEventRepository).save(
                 argThat(event ->
@@ -95,7 +95,7 @@ class InvoiceJobCreationServiceTest {
 
         assertThrows(
                 IllegalStateException.class,
-                () -> service.createJob(documentReference)
+                () -> service.createJob(documentReference, "invoice.pdf")
         );
 
         verify(repository).save(any(InvoiceProcessingJob.class));

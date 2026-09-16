@@ -22,12 +22,13 @@ public class InvoiceJobCreationService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public InvoiceProcessingJob createJob(String documentReference) {
+    public InvoiceProcessingJob createJob(String documentReference, String originalFileName) {
 
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        documentReference
+                        documentReference,
+                        originalFileName
                 );
 
         InvoiceProcessingJob savedJob =

@@ -13,14 +13,16 @@ public class InvoiceProcessingJob {
     private Invoice invoice;
     private InvoiceValidationResult validationResult;
     private final String documentReference;
+    private final String originalFileName;
     private int retryCount;
     private Instant leaseUntil;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    public InvoiceProcessingJob(UUID id, String documentReference) {
+    public InvoiceProcessingJob(UUID id, String documentReference, String originalFileName) {
         this.id = id;
         this.documentReference = documentReference;
+        this.originalFileName = originalFileName;
         this.status = ProcessingStatus.QUEUED;
         this.retryCount = 0;
         this.leaseUntil = null;
@@ -34,6 +36,7 @@ public class InvoiceProcessingJob {
             Invoice invoice,
             InvoiceValidationResult validationResult,
             String documentReference,
+            String originalFileName,
             int retryCount,
             Instant leaseUntil,
             Instant createdAt,
@@ -45,6 +48,7 @@ public class InvoiceProcessingJob {
         this.validationResult = validationResult;
         this.leaseUntil = leaseUntil;
         this.documentReference = documentReference;
+        this.originalFileName = originalFileName;
         this.retryCount = retryCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -56,6 +60,7 @@ public class InvoiceProcessingJob {
             Invoice invoice,
             InvoiceValidationResult validationResult,
             String documentReference,
+            String originalFileName,
             int retryCount,
             Instant leaseUntil,
             Instant createdAt,
@@ -67,6 +72,7 @@ public class InvoiceProcessingJob {
                 invoice,
                 validationResult,
                 documentReference,
+                originalFileName,
                 retryCount,
                 leaseUntil,
                 createdAt,
@@ -91,6 +97,9 @@ public class InvoiceProcessingJob {
     }
     public String documentReference() {
         return documentReference;
+    }
+    public String originalFileName() {
+        return originalFileName;
     }
     public int retryCount() {
         return retryCount;

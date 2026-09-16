@@ -42,6 +42,7 @@ public class InvoiceProcessingJobMapper {
                 invoice,
                 validationResult,
                 entity.getDocumentReference(),
+                entity.getOriginalFileName(),
                 entity.getRetryCount(),
                 entity.getLeaseUntil(),
                 entity.getCreatedAt(),
@@ -69,6 +70,7 @@ public class InvoiceProcessingJobMapper {
         entity.setStatus(job.status());
         entity.setRetryCount(job.retryCount());
         entity.setLeaseUntil(job.leaseUntil());
+        entity.setOriginalFileName(job.originalFileName());
 
         entity.setInvoiceData(
                 serialize(job.invoice())

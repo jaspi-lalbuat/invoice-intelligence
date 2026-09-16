@@ -51,7 +51,7 @@ class InvoiceProcessingWorkerTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         job.startProcessing(
                 Instant.now().plusSeconds(120)
@@ -106,7 +106,7 @@ class InvoiceProcessingWorkerTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         job.startProcessing(
                 java.time.Instant.now().plusSeconds(120)
@@ -155,7 +155,7 @@ class InvoiceProcessingWorkerTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf",  "document-ref");
 
         job.startProcessing(
                 Instant.now().plusSeconds(120)
@@ -189,7 +189,7 @@ class InvoiceProcessingWorkerTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         job.startProcessing(
                 Instant.now().plusSeconds(120)
@@ -218,7 +218,7 @@ class InvoiceProcessingWorkerTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         job.startProcessing(
                 Instant.now().plusSeconds(120)

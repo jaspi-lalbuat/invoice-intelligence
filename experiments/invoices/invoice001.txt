@@ -1,0 +1,22 @@
+TAX INVOICE
+
+ABC Technologies Pvt Ltd
+GSTIN: 29ABCDE1234F1Z5
+
+Invoice Number: INV-2026-00124
+Invoice Date: 28-Aug-2026
+Due Date: 27-Sep-2026
+
+Bill To:
+XYZ Solutions Pvt Ltd
+GSTIN: 27XYZDE5678G1Z2
+
+Description             Qty     Unit Price
+MacBook Stand            5        2500
+USB-C Hub                3        4500
+Wireless Keyboard        2        3000
+
+Subtotal: ₹34,000
+CGST: ₹3,060
+SGST: ₹3,060
+Total: ₹40,120

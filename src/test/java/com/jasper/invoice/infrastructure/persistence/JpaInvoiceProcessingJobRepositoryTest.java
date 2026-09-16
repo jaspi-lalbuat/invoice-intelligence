@@ -1,12 +1,8 @@
 package com.jasper.invoice.infrastructure.persistence;
 
 import com.jasper.invoice.config.JacksonConfig;
-import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.*;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
-import com.jasper.invoice.infrastructure.persistence.InvoiceProcessingJobJpaRepository;
-import com.jasper.invoice.infrastructure.persistence.InvoiceProcessingJobMapper;
-import com.jasper.invoice.infrastructure.persistence.JpaInvoiceProcessingJobRepository;
 import com.jasper.invoice.domain.validation.InvoiceValidationResult;
 import com.jasper.invoice.domain.validation.ValidationStatus;
 import org.junit.jupiter.api.Test;
@@ -14,9 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
-
-
-
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -92,6 +85,7 @@ class JpaInvoiceProcessingJobRepositoryTest {
                         invoice,
                         validation,
                         documentReference,
+                        "invoice.pdf",
                         0,
                         leaseUntil,
                         Instant.now(),
@@ -120,7 +114,7 @@ class JpaInvoiceProcessingJobRepositoryTest {
         String documentReference = "placeholder-" + UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(id, documentReference);
+                new InvoiceProcessingJob(id, documentReference, "invoice.pdf");
 
         repository.save(job);
 

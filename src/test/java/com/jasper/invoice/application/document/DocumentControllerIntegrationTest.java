@@ -61,7 +61,8 @@ class DocumentControllerIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         jobId,
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-" + UUID.randomUUID()
                 );
 
         job.startProcessing(
@@ -104,7 +105,8 @@ class DocumentControllerIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         jobId,
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-" + UUID.randomUUID()
                 );
 
         repository.save(job);
@@ -213,7 +215,8 @@ class DocumentControllerIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         jobId,
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-" + UUID.randomUUID()
                 );
 
         repository.save(job);
@@ -245,7 +248,7 @@ class DocumentControllerIntegrationTest {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-" + UUID.randomUUID());
 
         Invoice invoice = createInvoice();
 
@@ -284,7 +287,7 @@ class DocumentControllerIntegrationTest {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-" + UUID.randomUUID());
 
         Invoice invoice = createInvoice();
 
@@ -328,7 +331,7 @@ class DocumentControllerIntegrationTest {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-" + UUID.randomUUID());
 
         job.startProcessing(Instant.now().plusSeconds(120));
         job.fail();

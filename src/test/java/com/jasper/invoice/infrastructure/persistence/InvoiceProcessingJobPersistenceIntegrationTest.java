@@ -33,7 +33,8 @@ class InvoiceProcessingJobPersistenceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         InvoiceProcessingJobEntity entity =

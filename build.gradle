@@ -48,6 +48,7 @@ tasks.named('test') {
             excludeTags 'ollama'
         }
     }
+    systemProperty 'spring.profiles.active', 'test'
     exclude '**/*OcrTextExtractorIntegrationTest.class'
     exclude '**/*FallbackDocumentTextExtractorIntegrationTest.class'
 }
@@ -60,6 +61,7 @@ tasks.register('ocrTest', Test) {
     classpath = sourceSets.test.runtimeClasspath
 
     useJUnitPlatform()
+    systemProperty 'spring.profiles.active', 'test'
 
     filter {
         includeTestsMatching '*OcrTextExtractorIntegrationTest'

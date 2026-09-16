@@ -12,7 +12,12 @@ public interface InvoiceProcessingJobRepository {
     InvoiceProcessingJob save(InvoiceProcessingJob job);
 
     Optional<InvoiceProcessingJob> findById(UUID id);
+
     Optional<InvoiceProcessingJob> findNextQueuedJobForUpdate();
+
     Optional<InvoiceProcessingJob> findByIdForUpdate(UUID id);
+
     List<InvoiceProcessingJob> findExpiredProcessingJobs(Instant now);
+
+    List<InvoiceProcessingJob> findAllOrderByCreatedAtDesc();
 }

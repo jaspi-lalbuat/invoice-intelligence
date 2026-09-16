@@ -55,7 +55,7 @@ class JpaProcessingOwnershipStoreIntegrationTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         jpaRepository.save(mapper.toEntity(job));
 
@@ -98,7 +98,7 @@ class JpaProcessingOwnershipStoreIntegrationTest {
         UUID staleAttemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         jpaRepository.save(mapper.toEntity(job));
 
@@ -149,7 +149,7 @@ class JpaProcessingOwnershipStoreIntegrationTest {
         UUID attemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         jpaRepository.save(mapper.toEntity(job));
 
@@ -203,7 +203,7 @@ class JpaProcessingOwnershipStoreIntegrationTest {
         UUID staleAttemptId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         jpaRepository.save(mapper.toEntity(job));
 

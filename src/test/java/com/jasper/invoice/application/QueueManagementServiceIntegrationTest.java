@@ -59,7 +59,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
             new InvoiceProcessingJob(
                 UUID.randomUUID(),
-                "invoice.pdf"
+                "invoice.pdf",
+                "document-ref"
             );
 
         repository.save(job);
@@ -92,7 +93,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         repository.save(job);
@@ -114,7 +116,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         repository.save(job);
@@ -164,7 +167,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         repository.save(job);
@@ -221,7 +225,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         job.startProcessing(expiredLease);
@@ -274,7 +279,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         job.startProcessing(activeLease);
@@ -308,7 +314,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob expiredJob1 =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "expired-1.pdf"
+                        "expired-1.pdf",
+                        "document-ref"
                 );
 
         expiredJob1.startProcessing(
@@ -318,7 +325,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob expiredJob2 =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "expired-2.pdf"
+                        "expired-2.pdf",
+                        "document-ref"
                 );
 
         expiredJob2.startProcessing(
@@ -328,7 +336,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob activeJob =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "active.pdf"
+                        "active.pdf",
+                        "document-ref"
                 );
 
         Instant activeLease =
@@ -376,7 +385,7 @@ class QueueManagementServiceIntegrationTest {
         assertEquals(
                 activeLease,
                 persistedActiveJob.leaseUntil()
-        );
+            );
     }
 
     @Test
@@ -387,13 +396,15 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob queuedJob =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "queued.pdf"
+                        "queued.pdf",
+                        "document-ref"
                 );
 
         InvoiceProcessingJob activeJob =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "active.pdf"
+                        "active.pdf",
+                        "document-ref"
                 );
 
         activeJob.startProcessing(
@@ -427,7 +438,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         job.startProcessing(leaseUntil);
@@ -457,7 +469,8 @@ class QueueManagementServiceIntegrationTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         jobId,
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         repository.save(job);

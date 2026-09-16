@@ -45,7 +45,8 @@ class QueueManagementServiceTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         when(repository.findNextQueuedJobForUpdate())
@@ -92,7 +93,7 @@ class QueueManagementServiceTest {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         job.startProcessing(Instant.now().plusSeconds(120));
         job.fail();
@@ -118,7 +119,7 @@ class QueueManagementServiceTest {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, "invoice.pdf");
+                new InvoiceProcessingJob(jobId, "invoice.pdf", "document-ref");
 
         when(repository.findById(jobId))
                 .thenReturn(Optional.of(job));

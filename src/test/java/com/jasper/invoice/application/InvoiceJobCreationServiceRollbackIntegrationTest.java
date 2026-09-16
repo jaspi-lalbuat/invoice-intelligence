@@ -53,7 +53,7 @@ class InvoiceJobCreationServiceRollbackIntegrationTest {
 
         assertThrows(
                 RuntimeException.class,
-                () -> service.createJob(documentReference)
+                () -> service.createJob(documentReference, "invoice.pdf")
         );
 
         assertTrue(

@@ -40,19 +40,20 @@ class InvoiceProcessingServiceTest {
         InvoiceProcessingJob expectedJob =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        documentReference
+                        documentReference,
+                        "invoice.pdf"
                 );
 
-        when(jobCreationService.createJob(documentReference))
+        when(jobCreationService.createJob(documentReference, "invoice.pdf"))
                 .thenReturn(expectedJob);
 
         InvoiceProcessingJob job =
-                service.createJob(documentReference);
+                service.createJob(documentReference, "invoice.pdf");
 
         assertSame(expectedJob, job);
 
         verify(jobCreationService)
-                .createJob(documentReference);
+                .createJob(documentReference, "invoice.pdf");
     }
 
 
@@ -74,7 +75,7 @@ class InvoiceProcessingServiceTest {
 
         RuntimeException failure =
                 new RuntimeException("database failure");
-        when(jobCreationService.createJob(documentReference))
+        when(jobCreationService.createJob(documentReference, "invoice.pdf"))
                 .thenThrow(failure);
 
         RuntimeException thrown =

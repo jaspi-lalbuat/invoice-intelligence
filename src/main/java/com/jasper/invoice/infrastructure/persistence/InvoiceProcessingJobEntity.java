@@ -52,6 +52,9 @@ public class InvoiceProcessingJobEntity {
     @UpdateTimestamp
     private Instant updatedAt;
 
+    @Column
+    private String originalFileName;
+
     protected InvoiceProcessingJobEntity() {
     }
 }

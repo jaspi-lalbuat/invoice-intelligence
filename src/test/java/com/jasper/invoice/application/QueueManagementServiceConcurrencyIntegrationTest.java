@@ -31,7 +31,7 @@ public class QueueManagementServiceConcurrencyIntegrationTest {
         String documentReference = "document-" + UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(jobId, documentReference);
+                new InvoiceProcessingJob(jobId, documentReference, "invoice.pdf");
 
         jobRepository.save(job);
 

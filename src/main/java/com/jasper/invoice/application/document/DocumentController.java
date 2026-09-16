@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -80,6 +81,20 @@ public class DocumentController {
                 job.createdAt(),
                 job.updatedAt()
         );
+    }
+
+    @GetMapping
+    public List<InvoiceProcessingJobSummaryResponse> getJobs() {
+        return processingService.getJobs()
+                .stream()
+                .map(job -> new InvoiceProcessingJobSummaryResponse(
+                        job.id(),
+                        job.originalFileName(),
+                        job.status(),
+                        job.createdAt(),
+                        job.updatedAt()
+                ))
+                .toList();
     }
 
     @PostMapping("/{jobId}/retry")

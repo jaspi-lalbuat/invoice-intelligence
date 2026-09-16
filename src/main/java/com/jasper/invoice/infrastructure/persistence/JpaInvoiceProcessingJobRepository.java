@@ -59,4 +59,12 @@ public class JpaInvoiceProcessingJobRepository
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<InvoiceProcessingJob> findAllOrderByCreatedAtDesc() {
+        return jpaRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

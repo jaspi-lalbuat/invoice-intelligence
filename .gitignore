@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Runtime document storage
+storage/
+
+# macOS
+.DS_Store

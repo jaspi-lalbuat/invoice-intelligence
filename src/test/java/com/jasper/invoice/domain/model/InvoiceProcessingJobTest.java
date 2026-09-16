@@ -20,7 +20,7 @@ class InvoiceProcessingJobTest {
     void shouldStartInQueuedState() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         Assertions.assertEquals(
                 ProcessingStatus.QUEUED,
@@ -32,7 +32,7 @@ class InvoiceProcessingJobTest {
     void shouldTransitionFromQueuedToProcessing() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         job.startProcessing(leaseUntil);
 
@@ -50,7 +50,7 @@ class InvoiceProcessingJobTest {
     void shouldTransitionToReadyWhenValidationPasses() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         job.startProcessing(leaseUntil);
 
@@ -73,7 +73,7 @@ class InvoiceProcessingJobTest {
     void shouldTransitionToReviewRequiredWhenValidationFails() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         job.startProcessing(leaseUntil);
 
@@ -96,7 +96,7 @@ class InvoiceProcessingJobTest {
     void shouldTransitionToFailed() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         job.startProcessing(leaseUntil);
         job.fail();
@@ -115,7 +115,7 @@ class InvoiceProcessingJobTest {
     void shouldNotCompleteQueuedJob() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         assertThrows(
                 InvalidProcessingStateException.class,
@@ -130,7 +130,7 @@ class InvoiceProcessingJobTest {
     void shouldNotStartAlreadyProcessingJob() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         job.startProcessing(leaseUntil);
 
@@ -144,7 +144,7 @@ class InvoiceProcessingJobTest {
     void shouldNotFailQueuedJob() {
 
         InvoiceProcessingJob job =
-                new InvoiceProcessingJob(UUID.randomUUID(), documentReference);
+                new InvoiceProcessingJob(UUID.randomUUID(), documentReference, "invoice.pdf");
 
         assertThrows(
                 InvalidProcessingStateException.class,
@@ -174,7 +174,8 @@ class InvoiceProcessingJobTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         job.startProcessing(leaseUntil);
@@ -200,7 +201,8 @@ class InvoiceProcessingJobTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
-                        "invoice.pdf"
+                        "invoice.pdf",
+                        "document-ref"
                 );
 
         job.startProcessing(leaseUntil);
@@ -225,6 +227,7 @@ class InvoiceProcessingJobTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
+                        "document-ref",
                         "invoice.pdf"
                 );
 
@@ -247,6 +250,7 @@ class InvoiceProcessingJobTest {
         InvoiceProcessingJob job =
                 new InvoiceProcessingJob(
                         UUID.randomUUID(),
+                        "document-ref",
                         "invoice.pdf"
                 );
 

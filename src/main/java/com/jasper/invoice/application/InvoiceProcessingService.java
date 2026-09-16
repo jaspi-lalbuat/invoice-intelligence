@@ -1,7 +1,7 @@
 package com.jasper.invoice.application;
 
-import com.jasper.invoice.application.document.port.DocumentValidator;
 import com.jasper.invoice.application.document.port.DocumentStorage;
+import com.jasper.invoice.application.document.port.DocumentValidator;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
 import lombok.AllArgsConstructor;
@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -38,7 +39,12 @@ public class InvoiceProcessingService {
                 documentStorage.store(file);
 
         try {
-            return createJob(documentReference);
+            String originalFileName = file.getOriginalFilename();
+
+            if (originalFileName == null || originalFileName.isBlank()) {
+                originalFileName = "invoice"+documentReference+".pdf";
+            }
+            return createJob(documentReference, originalFileName);
         } catch (RuntimeException e) {
             try {
                 documentStorage.delete(documentReference);
@@ -49,8 +55,8 @@ public class InvoiceProcessingService {
         }
     }
 
-    public InvoiceProcessingJob createJob(String documentReference) {
-        return jobCreationService.createJob(documentReference);
+    public InvoiceProcessingJob createJob(String documentReference, String originalFileName) {
+        return jobCreationService.createJob(documentReference, originalFileName);
     }
 
     public InvoiceProcessingJob getJob(UUID jobId) {
@@ -61,5 +67,9 @@ public class InvoiceProcessingService {
 
     public void retryJob(UUID jobId) {
         queueManagementService.retryJob(jobId);
+    }
+
+    public List<InvoiceProcessingJob> getJobs() {
+        return repository.findAllOrderByCreatedAtDesc();
     }
 }

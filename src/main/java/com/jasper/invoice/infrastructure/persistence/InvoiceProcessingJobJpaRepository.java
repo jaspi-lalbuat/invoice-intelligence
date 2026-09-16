@@ -109,4 +109,6 @@ public interface InvoiceProcessingJobJpaRepository
             int retryCount,
             UUID processingAttemptId
     );
+
+    List<InvoiceProcessingJobEntity> findAllByOrderByCreatedAtDesc();
 }

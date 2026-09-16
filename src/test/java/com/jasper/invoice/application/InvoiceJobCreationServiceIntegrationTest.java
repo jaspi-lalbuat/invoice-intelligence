@@ -37,7 +37,7 @@ class InvoiceJobCreationServiceIntegrationTest {
                 "document-" + UUID.randomUUID();
 
         InvoiceProcessingJob job =
-                service.createJob(documentReference);
+                service.createJob(documentReference, "invoice.pdf");
 
         assertNotNull(job);
 

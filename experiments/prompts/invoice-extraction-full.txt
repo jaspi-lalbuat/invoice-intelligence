@@ -1,0 +1,70 @@
+You are an invoice data extraction engine.
+
+Extract the invoice fields from the provided text.
+
+IMPORTANT:
+- Do not explain anything.
+- Do not reason about the answer.
+- Do not correct values found in the invoice.
+- Copy the stated values exactly.
+- Return ONLY one valid JSON object.
+- Do not use Markdown.
+- Do not wrap the JSON in ``` fences.
+- Do not include any text before or after the JSON.
+- Use null when a field is not present.
+- Use numbers for numeric values.
+- Use ISO 8601 format YYYY-MM-DD for dates.
+- The subtotal, tax, and total must be the values stated on the invoice, even if they are mathematically inconsistent with the line items.
+
+JSON schema:
+
+{
+  "invoiceNumber": "string or null",
+  "invoiceDate": "YYYY-MM-DD or null",
+  "dueDate": "YYYY-MM-DD or null",
+  "currency": "string or null",
+  "supplier": {
+    "name": "string or null",
+    "taxId": "string or null"
+  },
+  "customer": {
+    "name": "string or null",
+    "taxId": "string or null"
+  },
+  "lineItems": [
+    {
+      "description": "string",
+      "quantity": 0,
+      "unitPrice": 0,
+      "total": 0
+    }
+  ],
+  "subtotal": 0,
+  "tax": 0,
+  "total": 0
+}
+
+Invoice text:
+
+TAX INVOICE
+
+ABC Technologies Pvt Ltd
+GSTIN: 29ABCDE1234F1Z5
+
+Invoice Number: INV-2026-00124
+Invoice Date: 28-Aug-2026
+Due Date: 27-Sep-2026
+
+Bill To:
+XYZ Solutions Pvt Ltd
+GSTIN: 27XYZDE5678G1Z2
+
+Description             Qty     Unit Price
+MacBook Stand            5        2500
+USB-C Hub                3        4500
+Wireless Keyboard        2        3000
+
+Subtotal: ₹34,000
+CGST: ₹3,060
+SGST: ₹3,060
+Total: ₹40,120
