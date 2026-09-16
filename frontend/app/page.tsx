@@ -149,6 +149,8 @@ export default function Home() {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const [isDragging, setIsDragging] = useState(false);
+
   /*
    * Update the status of an invoice in the left-hand list.
    */
@@ -205,6 +207,22 @@ export default function Home() {
       );
     }
   };
+
+  const selectFile = (file: File | undefined) => {
+      setError(null);
+
+      if (!file) {
+        return;
+      }
+
+      if (file.type !== "application/pdf") {
+        setSelectedFile(null);
+        setError("Please select a PDF file.");
+        return;
+      }
+
+      setSelectedFile(file);
+    };
 
   /*
    * Load existing invoices when the page opens.
@@ -404,22 +422,7 @@ export default function Home() {
   const handleFileChange = (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
-
-    setError(null);
-
-    if (!file) {
-      setSelectedFile(null);
-      return;
-    }
-
-    if (file.type !== "application/pdf") {
-      setSelectedFile(null);
-      setError("Please select a PDF file.");
-      return;
-    }
-
-    setSelectedFile(file);
+    selectFile(event.target.files?.[0]);
   };
 
   /*
@@ -521,17 +524,17 @@ export default function Home() {
         </header>
 
         {/* Hero */}
-        <section className="py-12">
+        <section className="py-10">
           <div>
             <p className="mb-3 text-sm font-medium text-zinc-500">
               INVOICE PROCESSING
             </p>
 
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-[2.5rem]">
               Turn invoices into structured data.
             </h2>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
               Upload a PDF and let the processing pipeline
               extract, interpret, and validate the invoice
               automatically.
@@ -540,7 +543,7 @@ export default function Home() {
         </section>
 
         {/* Main workspace */}
-        <section className="grid flex-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <section className="grid flex-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
 
           {/* Left column */}
           <aside className="space-y-5">
@@ -565,12 +568,23 @@ export default function Home() {
                 onChange={handleFileChange}
               />
 
-              <button
-                type="button"
-                onClick={() =>
-                  fileInputRef.current?.click()
-                }
-                className="mt-5 w-full rounded-xl border border-dashed border-zinc-700 bg-zinc-950/60 px-4 py-7 text-center transition hover:border-zinc-500 hover:bg-zinc-900"
+              <div
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setIsDragging(false);
+                  selectFile(event.dataTransfer.files?.[0]);
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`mt-5 w-full cursor-pointer rounded-xl border border-dashed px-4 py-7 text-center transition ${
+                  isDragging
+                    ? "border-zinc-400 bg-zinc-800/70"
+                    : "border-zinc-700 bg-zinc-950/60 hover:border-zinc-500 hover:bg-zinc-900"
+                }`}
               >
                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900">
                   <svg
@@ -591,19 +605,15 @@ export default function Home() {
                 <p className="mt-3 truncate text-sm font-medium text-zinc-300">
                   {selectedFile
                     ? selectedFile.name
-                    : "Choose a PDF"}
+                    : "Drop your PDF here"}
                 </p>
 
                 <p className="mt-1 text-xs text-zinc-600">
                   {selectedFile
-                    ? `${(
-                        selectedFile.size /
-                        1024 /
-                        1024
-                      ).toFixed(2)} MB`
-                    : "Click to browse"}
+                    ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
+                    : "or click to browse"}
                 </p>
-              </button>
+              </div>
 
               {selectedFile && (
                 <button
@@ -657,8 +667,8 @@ export default function Home() {
                         }}
                         className={`w-full rounded-xl p-3 text-left transition ${
                           isSelected
-                            ? "bg-zinc-800"
-                            : "hover:bg-zinc-800/60"
+                            ? "bg-zinc-800/80 ring-1 ring-zinc-700"
+                            : "hover:bg-zinc-800/50"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -697,7 +707,7 @@ export default function Home() {
           </aside>
 
           {/* Right column */}
-          <div className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/30">
 
             {!selectedJobId ? (
               <div className="flex min-h-[500px] items-center justify-center p-10 text-center">
@@ -717,11 +727,11 @@ export default function Home() {
                 {/* Selected invoice header */}
                 <div className="flex flex-col gap-4 border-b border-zinc-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
-                      Selected invoice
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-600">
+                      Invoice
                     </p>
 
-                    <h3 className="mt-2 truncate text-xl font-semibold text-white">
+                    <h3 className="mt-2 truncate text-2xl font-semibold tracking-tight text-white">
                       {selectedSummary?.originalFileName ??
                         "Invoice"}
                     </h3>
@@ -741,11 +751,23 @@ export default function Home() {
                     type="button"
                     onClick={refreshStatus}
                     disabled={refreshing}
-                    className="shrink-0 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Refresh status"
+                    aria-label="Refresh status"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {refreshing
-                      ? "Refreshing..."
-                      : "Refresh status"}
+                    <svg
+                      className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"
+                      />
+                    </svg>
                   </button>
                 </div>
 
@@ -759,16 +781,18 @@ export default function Home() {
 
                       <div className="mt-2 flex items-center gap-2">
                         <span
-                          className={`h-2.5 w-2.5 rounded-full ${
+                          className={`h-2.5 w-2.5 rounded-full shadow-[0_0_8px_currentColor] ${
+                            selectedInvoice?.status === "PROCESSING"
+                              ? "animate-pulse"
+                              : ""
+                          } ${
                             selectedInvoice
-                              ? getStatusColor(
-                                  selectedInvoice.status,
-                                )
+                              ? getStatusColor(selectedInvoice.status)
                               : "bg-zinc-500"
                           }`}
                         />
 
-                        <span className="text-sm font-medium text-zinc-200">
+                        <span className="text-sm font-medium text-zinc-100">
                           {selectedInvoice
                             ? formatStatus(
                                 selectedInvoice.status,
@@ -790,6 +814,36 @@ export default function Home() {
                       </div>
                     )}
                   </div>
+
+                  {selectedInvoice?.status === "QUEUED" && (
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Waiting for a processing worker...
+                    </p>
+                  )}
+
+                  {selectedInvoice?.status === "PROCESSING" && (
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Extracting and validating invoice...
+                    </p>
+                  )}
+
+                  {selectedInvoice?.status === "READY" && (
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Invoice extracted and validated successfully.
+                    </p>
+                  )}
+
+                  {selectedInvoice?.status === "REVIEW_REQUIRED" && (
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Extraction completed. Review the validation issues below.
+                    </p>
+                  )}
+
+                  {selectedInvoice?.status === "FAILED" && (
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Processing failed. The invoice can be retried.
+                    </p>
+                  )}
 
                   {/* Status history */}
                   {statusHistory.length > 0 && (
@@ -1082,7 +1136,7 @@ export default function Home() {
         )}
 
         {/* Pipeline */}
-        <div className="mt-8 grid grid-cols-3 gap-3">
+        <div className="mt-10 grid grid-cols-3 gap-3">
           {[
             ["01", "Extract", "PDF / OCR"],
             ["02", "Interpret", "LLM"],
@@ -1090,7 +1144,7 @@ export default function Home() {
           ].map(([number, title, description]) => (
             <div
               key={number}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4"
+              className="rounded-xl border border-zinc-800/70 bg-zinc-900/30 p-4 transition hover:border-zinc-700"
             >
               <p className="text-xs text-zinc-600">
                 {number}
