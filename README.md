@@ -29,12 +29,12 @@ flowchart LR
     API --> Submit[InvoiceProcessingService]
     Submit --> Storage[Local document storage]
     Submit --> Create[InvoiceJobCreationService]
-    Create --> DB[(PostgreSQL\njobs + outbox)]
+    Create --> DB[(PostgreSQL<br/>jobs + outbox)]
 
     DB --> Outbox[Outbox publishing poller]
-    Outbox --> Kafka[(Kafka\ninvoice-processing)]
+    Outbox --> Kafka[(Kafka<br/>invoice-processing)]
     Kafka --> Consumer[Kafka consumer]
-    Consumer --> Claim[QueueManagementService\nclaim + lease]
+    Consumer --> Claim[QueueManagementService<br/>claim + lease]
     Claim --> DB
     Claim --> Worker[InvoiceProcessingWorker]
 
@@ -67,26 +67,24 @@ flowchart LR
 
 **Delivery is at least once by design.** An event can be sent again if publication succeeds but recording `publishedAt` fails. That is safe because workers claim from the authoritative job record rather than trusting message uniqueness.
 
-**`FOR UPDATE SKIP LOCKED` makes competing workers cooperate.** Claim queries lock only an available queued row and skip rows another transaction owns, avoiding double claims without serializing the entire queue.
+**`FOR UPDATE SKIP LOCKED` enables concurrent job claiming.** Competing workers can claim different available queued rows without waiting on rows already locked by another transaction. This avoids double claims without serializing the entire queue.
 
-**Attempt IDs fence stale workers.** A recovered/reclaimed job receives a new attempt ID. Completion and retry/fail updates include that ID in their conditional update, so an earlier worker cannot overwrite newer state after a lease expiry.
+**Attempt IDs fence stale workers.** A recovered or reclaimed job receives a new attempt ID. Completion and retry/fail updates include that ID in their conditional update, so an earlier worker cannot overwrite newer state after a lease expiry.
 
-**Leases recover abandoned work.** Processing jobs have a configured five-minute lease. The recovery poller requeues expired leases, while the request timeout is four minutes and Kafka's maximum poll interval is six minutes. Those bounds prevent an unbounded LLM request from quietly outliving its ownership window.
+**Leases recover abandoned work.** Processing jobs have a configured five-minute lease. The recovery poller requeues expired leases, while the Ollama HTTP timeout is four minutes and Kafka's maximum poll interval is six minutes. This bounds the expected processing time without requiring lease renewal.
 
-**Retry and failure are explicit.** Processing exceptions retry automatically up to the configured limit (three), then become `FAILED`. Kafka uses manual acknowledgment with auto-commit disabled: a retryable failure nacks the record for redelivery; completed, terminal, or stale work is acknowledged.
+**Retry and failure are explicit.** Processing exceptions retry automatically up to the configured limit (three), then become `FAILED`. Kafka uses manual acknowledgment with auto-commit disabled: a retryable processing failure nacks the record for redelivery; completed, terminal, or stale work is acknowledged.
 
 ## AI and document pipeline
 
-The LLM is used for **interpretation**, not business truth. It receives normalized text and returns candidate invoice fields: parties, dates, line items, taxes, and totals. The Ollama-specific HTTP client is an infrastructure adapter behind the application `InvoiceExtractor` port, so the application flow does not depend on Ollama APIs directly.
-
-The document path is intentionally layered:
+The LLM is used for **interpretation**, not business truth. It receives normalized text and returns candidate invoice fields. The Ollama-specific HTTP client is an infrastructure adapter behind the application `InvoiceExtractor` port.
 
 1. PDFBox reads embedded text.
 2. If no usable text is present, PDF pages are rendered at 200 DPI and passed to Tesseract through Tess4J.
 3. Whitespace and line endings are normalized before extraction.
 4. Java validation checks the extracted result independently of the model.
 
-The validator handles required invoice fields and line-item data, recalculates subtotal from quantity × unit price when possible, compares it with the stated subtotal, and compares the stated total with subtotal, taxes, and discount. The LLM is never allowed to make the final validity decision.
+The current API accepts **PDF documents only**. OCR exists to handle scanned content inside those PDFs.
 
 ## Domain lifecycle and validation
 
@@ -96,145 +94,93 @@ QUEUED → PROCESSING → READY
                     ↘ FAILED → QUEUED  (explicit retry)
 ```
 
-- `READY` means extraction completed and `InvoiceValidationResult` is `VALID`.
-- `REVIEW_REQUIRED` means processing completed, but deterministic validation found missing or inconsistent information. It is not a processing failure.
-- `FAILED` means the document-processing attempt exhausted automatic retries or otherwise reached terminal operational failure. The retry endpoint can requeue it.
+- `READY` means extraction completed and validation is `VALID`.
+- `REVIEW_REQUIRED` means processing completed but deterministic validation found missing or inconsistent information.
+- `FAILED` means processing exhausted automatic retries or reached terminal operational failure.
 
 ## Technology stack
 
 - Java 21 and Spring Boot
-- Spring Web, Spring Data JPA, Spring Kafka, Spring scheduling
+- Spring Web, Spring Data JPA, Spring Kafka, Spring scheduling for outbox and recovery pollers
 - PostgreSQL with Hibernate/JPA and JSONB columns
-- Apache Kafka
-- Apache PDFBox 3
-- Tess4J / Tesseract OCR
+- Apache Kafka, PDFBox 3, Tess4J / Tesseract OCR
 - Ollama via Spring `RestClient`
 - Jackson, Gradle, JUnit 5, Mockito, AssertJ, Awaitility
 
 ## Local setup
 
-The application itself is not Dockerized. The repository provides Docker Compose only for Kafka.
-
-### Prerequisites
-
-- Java 21
-- PostgreSQL listening on `localhost:5432`
-- Docker, for the provided Kafka broker
-- Ollama with the configured model
-- Tesseract language data containing `eng.traineddata`
-
-Create the database expected by `src/main/resources/application.yml`:
+The application is not Dockerized. Docker Compose is provided only for Kafka.
 
 ```bash
 psql -U postgres -d postgres -c "CREATE ROLE invoice LOGIN PASSWORD 'invoice';"
 psql -U postgres -d postgres -c "CREATE DATABASE invoice_intelligence OWNER invoice;"
-```
 
-Start Kafka:
-
-```bash
 docker compose -f docker/kafka/compose.yml up -d
-```
 
-Start Ollama, then pull the configured model from a second terminal:
-
-```bash
 # terminal 1
 ollama serve
 
 # terminal 2
 ollama pull gemma3:12b
-```
 
-Point the application at Tesseract's data directory—the directory that contains `eng.traineddata`:
-
-```bash
 export TESSDATA_PREFIX=/path/to/tessdata
-```
 
-Run the application:
-
-```bash
 ./gradlew bootRun
 ```
 
-Current defaults are PostgreSQL `jdbc:postgresql://localhost:5432/invoice_intelligence`, Kafka `localhost:9092`, Ollama `http://localhost:11434`, processing mode `kafka`, and HTTP port `8080`. Properties can be overridden using normal Spring configuration.
+Prerequisites: Java 21, PostgreSQL on `localhost:5432`, Docker, Ollama, and Tesseract data containing `eng.traineddata`.
+
+Defaults are PostgreSQL `jdbc:postgresql://localhost:5432/invoice_intelligence`, Kafka `localhost:9092`, Ollama `http://localhost:11434`, processing mode `kafka`, and HTTP port `8080`.
 
 ## Example API usage
 
-Create an asynchronous processing job from a PDF:
-
 ```bash
-curl -X POST http://localhost:8080/api/v1/documents \
-  -F "file=@/absolute/path/to/invoice.pdf;type=application/pdf"
+curl -X POST http://localhost:8080/api/v1/documents   -F "file=@/absolute/path/to/invoice.pdf;type=application/pdf"
 ```
 
-Response (`202 Accepted`):
+Response:
 
 ```json
-{
-  "jobId": "<uuid>"
-}
+{ "jobId": "<uuid>" }
 ```
-
-Read the current job state:
 
 ```bash
 curl http://localhost:8080/api/v1/documents/<uuid>
-```
 
-The response contains `jobId`, `status`, `invoice`, `validation`, `createdAt`, and `updatedAt`. A completed validation issue is returned in `validation.issues`; a job may therefore be `REVIEW_REQUIRED` with persisted extraction data rather than `FAILED`.
-
-Retry a terminally failed job:
-
-```bash
 curl -X POST http://localhost:8080/api/v1/documents/<uuid>/retry
+
+curl -X POST http://localhost:8080/api/v1/documents/extract-text   -F "file=@/absolute/path/to/invoice.pdf"
+
+curl -X POST http://localhost:8080/api/v1/documents/extract-invoice   -F "file=@/absolute/path/to/invoice.pdf"
 ```
 
-This returns `202 Accepted`. Retrying a job that is not `FAILED` returns `409 Conflict`; an unknown job returns `404 Not Found`.
-
-For synchronous inspection endpoints, the controller also exposes:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/documents/extract-text \
-  -F "file=@/absolute/path/to/invoice.pdf"
-
-curl -X POST http://localhost:8080/api/v1/documents/extract-invoice \
-  -F "file=@/absolute/path/to/invoice.pdf"
-```
+A job response contains `jobId`, `status`, `invoice`, `validation`, `createdAt`, and `updatedAt`. Retrying a non-failed job returns `409`; an unknown job returns `404`.
 
 ## Testing
 
-The repository includes meaningful behavior tests rather than coverage targets:
+The repository contains focused tests for transactional job/outbox creation and rollback, PostgreSQL persistence, concurrent claiming, expired lease recovery, stale-worker fencing, Kafka retry delivery, controller states, validation, OCR fallback, and real-Ollama extraction.
 
-- transactional job/outbox creation and rollback;
-- PostgreSQL persistence and JSON mapping;
-- concurrent claiming and recovery of expired leases;
-- stale completion and failure fencing;
-- Kafka publication, manual acknowledgment, retry redelivery, and end-to-end processing;
-- document controller states and deterministic validation;
-- OCR fallback and real-Ollama extraction integration tests.
-
-The current generated Gradle reports show **92 tests, 0 failures, and 0 errors** for the default suite.
+The standard test suite excludes the native OCR and real-Ollama integration tests by design. These can be run separately:
 
 ```bash
 ./gradlew test
-```
-
-OCR tests are intentionally isolated because they require local Tesseract data:
-
-```bash
 ./gradlew ocrTest
-```
-
-Real Ollama tests are opt-in:
-
-```bash
 ./gradlew test -Pollama
 ```
 
+OCR tests require local Tesseract data. Real-Ollama tests are opt-in because they require a running local Ollama instance and model.
+
 ## Scope and future work
 
-This is a portfolio-focused implementation of reliable asynchronous invoice processing, not a claim of full production deployment readiness. Its scope is intentionally centered on the processing path and the engineering decisions around it.
+This is a portfolio-focused implementation of reliable asynchronous invoice processing.
 
-Future production work could add database migrations, application containerization, managed document storage, authentication/authorization, upload limits, and operational observability. Those are not current capabilities.
+Potential future production hardening includes:
+
+- database migrations
+- application containerization
+- managed document storage
+- authentication and authorization
+- upload-size limits
+- operational observability
+
+These are not current capabilities.
