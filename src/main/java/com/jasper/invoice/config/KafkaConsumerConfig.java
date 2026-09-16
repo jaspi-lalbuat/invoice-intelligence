@@ -1,6 +1,7 @@
 package com.jasper.invoice.config;
 
 import com.jasper.invoice.application.InvoiceProcessingRequested;
+import com.jasper.invoice.application.ProcessingRetryPolicy;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,9 @@ import java.util.Map;
 public class KafkaConsumerConfig {
 
     @Bean
-    public ConsumerFactory<String, InvoiceProcessingRequested> consumerFactory() {
+    public ConsumerFactory<String, InvoiceProcessingRequested> consumerFactory(
+            ProcessingRetryPolicy retryPolicy
+    ) {
         Map<String, Object> properties = new HashMap<>();
 
         properties.put(
@@ -38,6 +41,14 @@ public class KafkaConsumerConfig {
         properties.put(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
                 "earliest"
+        );
+        properties.put(
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
+                false
+        );
+        properties.put(
+                ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                Math.toIntExact(retryPolicy.maxKafkaPollInterval().toMillis())
         );
         properties.put(
                 JacksonJsonDeserializer.TRUSTED_PACKAGES,

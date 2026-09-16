@@ -1,4 +1,4 @@
-package com.jasper.invoice.application.document;
+package com.jasper.invoice.domain.model;
 
 public enum ProcessingStatus {
     QUEUED,

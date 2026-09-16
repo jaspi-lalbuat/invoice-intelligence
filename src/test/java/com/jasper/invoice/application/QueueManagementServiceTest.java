@@ -1,17 +1,19 @@
 package com.jasper.invoice.application;
 
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
-import com.jasper.invoice.application.document.InvalidProcessingStateException;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.InvalidProcessingStateException;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,9 +28,17 @@ class QueueManagementServiceTest {
     private InvoiceProcessingJobRepository repository;
     @Mock
     private ProcessingOwnershipStore ownershipStore;
+    @Mock
+    private ProcessingRetryPolicy retryPolicy;
 
     @InjectMocks
     private QueueManagementService service;
+
+    @BeforeEach
+    void configureTiming() {
+        lenient().when(retryPolicy.leaseDuration())
+                .thenReturn(Duration.ofMinutes(5));
+    }
 
     @Test
     void shouldClaimQueuedJob() {

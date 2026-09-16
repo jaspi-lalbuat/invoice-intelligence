@@ -1,6 +1,6 @@
 package com.jasper.invoice.application;
 
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
 import org.junit.jupiter.api.Test;

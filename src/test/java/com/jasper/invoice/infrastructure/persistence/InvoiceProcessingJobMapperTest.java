@@ -2,7 +2,7 @@ package com.jasper.invoice.infrastructure.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.Invoice;
 import com.jasper.invoice.domain.model.InvoiceLineItem;
 import com.jasper.invoice.domain.model.Party;

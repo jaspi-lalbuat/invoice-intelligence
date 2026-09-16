@@ -19,6 +19,7 @@ spring:
 ollama:
   base-url: http://localhost:11434
   model: gemma3:12b
+  request-timeout: 4m
 
 invoice:
   processing:
@@ -26,6 +27,8 @@ invoice:
     poll-interval: 1s
     recovery-interval: 5s
     max-automatic-retries: 3
+    lease-duration: 5m
+    max-kafka-poll-interval: 6m
     outbox-poll-interval: 1000
     scheduling-enabled: true
 

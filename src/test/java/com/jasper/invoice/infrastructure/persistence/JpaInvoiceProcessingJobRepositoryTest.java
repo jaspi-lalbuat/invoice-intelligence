@@ -1,7 +1,7 @@
 package com.jasper.invoice.infrastructure.persistence;
 
 import com.jasper.invoice.config.JacksonConfig;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.*;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
 import com.jasper.invoice.infrastructure.persistence.InvoiceProcessingJobJpaRepository;

@@ -2,6 +2,7 @@ package com.jasper.invoice.application.document;
 
 import com.jasper.invoice.application.InvoiceProcessingJobNotFoundException;
 import com.jasper.invoice.application.InvoiceProcessingService;
+import com.jasper.invoice.domain.model.InvalidProcessingStateException;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;

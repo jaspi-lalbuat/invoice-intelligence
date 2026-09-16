@@ -1,7 +1,5 @@
 package com.jasper.invoice.domain.model;
 
-import com.jasper.invoice.application.document.InvalidProcessingStateException;
-import com.jasper.invoice.application.document.ProcessingStatus;
 import com.jasper.invoice.domain.validation.InvoiceValidationResult;
 import com.jasper.invoice.domain.validation.ValidationStatus;
 import org.junit.jupiter.api.Assertions;

@@ -8,9 +8,11 @@ import com.jasper.invoice.domain.model.Party;
 import com.jasper.invoice.domain.model.TaxBreakdown;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.util.Map;
 
 @Slf4j
@@ -26,8 +28,17 @@ public class OllamaInvoiceExtractor implements InvoiceExtractor {
             OllamaProperties properties,
             ObjectMapper objectMapper) {
 
+        JdkClientHttpRequestFactory requestFactory =
+                new JdkClientHttpRequestFactory(
+                        HttpClient.newBuilder()
+                                .connectTimeout(properties.requestTimeout())
+                                .build()
+                );
+        requestFactory.setReadTimeout(properties.requestTimeout());
+
         this.restClient = restClientBuilder
                 .baseUrl(properties.baseUrl())
+                .requestFactory(requestFactory)
                 .build();
 
         this.objectMapper = objectMapper;

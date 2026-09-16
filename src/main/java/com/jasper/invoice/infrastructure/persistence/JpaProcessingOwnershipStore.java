@@ -2,7 +2,7 @@ package com.jasper.invoice.infrastructure.persistence;
 
 import com.jasper.invoice.application.ProcessingClaim;
 import com.jasper.invoice.application.ProcessingRetryPolicy;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.application.ProcessingFailureResult;
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;

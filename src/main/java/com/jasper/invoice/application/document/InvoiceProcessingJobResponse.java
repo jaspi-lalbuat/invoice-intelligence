@@ -1,6 +1,7 @@
 package com.jasper.invoice.application.document;
 
 import com.jasper.invoice.domain.model.Invoice;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.validation.InvoiceValidationResult;
 
 import java.time.Instant;

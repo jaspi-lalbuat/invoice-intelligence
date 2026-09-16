@@ -2,7 +2,7 @@ package com.jasper.invoice.application;
 
 import com.jasper.invoice.application.document.DocumentService;
 import com.jasper.invoice.application.document.InvoiceExtractionResponse;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.application.document.port.DocumentStorage;
 import com.jasper.invoice.application.port.InvoiceProcessingEventPublisher;
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;

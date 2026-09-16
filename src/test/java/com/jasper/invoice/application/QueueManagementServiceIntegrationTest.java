@@ -2,7 +2,7 @@ package com.jasper.invoice.application;
 
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
 import com.jasper.invoice.config.JacksonConfig;
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
 import com.jasper.invoice.infrastructure.persistence.*;
@@ -139,11 +139,11 @@ class QueueManagementServiceIntegrationTest {
         assertNotNull(result.leaseUntil());
 
         assertFalse(result.leaseUntil().isBefore(
-                before.plus(Duration.ofMinutes(2))
+                before.plus(Duration.ofMinutes(5))
         ));
 
         assertFalse(result.leaseUntil().isAfter(
-                after.plus(Duration.ofMinutes(2))
+                after.plus(Duration.ofMinutes(5))
         ));
 
         InvoiceProcessingJobEntity persisted =

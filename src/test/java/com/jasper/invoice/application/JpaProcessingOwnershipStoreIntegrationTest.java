@@ -1,6 +1,6 @@
 package com.jasper.invoice.application;
 
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
 import com.jasper.invoice.config.JacksonConfig;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;

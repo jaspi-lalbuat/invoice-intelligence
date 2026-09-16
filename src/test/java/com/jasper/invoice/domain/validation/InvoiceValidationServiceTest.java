@@ -312,4 +312,32 @@ class InvoiceValidationServiceTest {
                                         ValidationIssueCode.MISSING_LINE_ITEM_QUANTITY)
         );
     }
+
+    @Test
+    void shouldTreatMissingTaxesAsZero() {
+
+        Invoice invoice = new Invoice(
+                "INV-NO-TAXES",
+                LocalDate.of(2026, 9, 1),
+                null,
+                "INR",
+                new Party("Supplier", null, null),
+                new Party("Customer", null, null),
+                List.of(new InvoiceLineItem(
+                        "Service",
+                        BigDecimal.ONE,
+                        new BigDecimal("100"),
+                        null,
+                        new BigDecimal("100")
+                )),
+                new BigDecimal("100"),
+                null,
+                null,
+                new BigDecimal("100")
+        );
+
+        InvoiceValidationResult result = service.validate(invoice);
+
+        assertEquals(ValidationStatus.VALID, result.status());
+    }
 }

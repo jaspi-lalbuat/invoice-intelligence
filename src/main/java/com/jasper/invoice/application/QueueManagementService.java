@@ -15,17 +15,17 @@ import java.util.UUID;
 @Service
 public class QueueManagementService {
 
-    private static final Duration LEASE_DURATION =
-            Duration.ofMinutes(2);
-
     private final InvoiceProcessingJobRepository repository;
     private final ProcessingOwnershipStore ownershipStore;
+    private final ProcessingRetryPolicy retryPolicy;
 
     public QueueManagementService(
             InvoiceProcessingJobRepository repository,
-            ProcessingOwnershipStore ownershipStore) {
+            ProcessingOwnershipStore ownershipStore,
+            ProcessingRetryPolicy retryPolicy) {
         this.repository = repository;
         this.ownershipStore = ownershipStore;
+        this.retryPolicy = retryPolicy;
     }
 
     @Transactional
@@ -41,7 +41,7 @@ public class QueueManagementService {
         InvoiceProcessingJob job = result.get();
 
         Instant leaseUntil =
-                Instant.now().plus(LEASE_DURATION);
+                Instant.now().plus(retryPolicy.leaseDuration());
 
         // Domain transition
         job.startProcessing(leaseUntil);
@@ -69,7 +69,7 @@ public class QueueManagementService {
         InvoiceProcessingJob job = result.get();
 
         Instant leaseUntil =
-                Instant.now().plus(LEASE_DURATION);
+                Instant.now().plus(retryPolicy.leaseDuration());
 
         // Domain transition
         job.startProcessing(leaseUntil);

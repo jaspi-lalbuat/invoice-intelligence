@@ -1,6 +1,6 @@
 package com.jasper.invoice.infrastructure.persistence;
 
-import com.jasper.invoice.application.document.ProcessingStatus;
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

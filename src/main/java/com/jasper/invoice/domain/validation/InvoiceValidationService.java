@@ -190,6 +190,10 @@ public class InvoiceValidationService {
     }
 
     private BigDecimal calculateTax(Invoice invoice) {
+        if (invoice.taxes() == null) {
+            return BigDecimal.ZERO;
+        }
+
         BigDecimal cgst = nullToZero(invoice.taxes().cgst());
         BigDecimal sgst = nullToZero(invoice.taxes().sgst());
         BigDecimal igst = nullToZero(invoice.taxes().igst());

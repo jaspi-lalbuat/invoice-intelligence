@@ -1,5 +1,6 @@
 package com.jasper.invoice.application.document;
 
+import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jasper.invoice.application.port.InvoiceProcessingEventPublisher;
 import com.jasper.invoice.domain.model.*;
