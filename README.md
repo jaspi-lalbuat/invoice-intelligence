@@ -24,7 +24,7 @@ The project is split into three practical boundaries:
 - **Infrastructure** adapts those ports to PostgreSQL/JPA, Kafka, local file storage, PDFBox, Tess4J/Tesseract, and Ollama over HTTP.
 
 ```mermaid
-flowchart LR
+flowchart TB
     Client[HTTP client] --> API[DocumentController]
     API --> Submit[InvoiceProcessingService]
     Submit --> Storage[Local document storage]
