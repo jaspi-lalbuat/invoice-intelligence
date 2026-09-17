@@ -4,6 +4,7 @@ import com.jasper.invoice.application.ProcessingRetryPolicy;
 import com.jasper.invoice.application.InvoiceProcessingRequested;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.jupiter.api.Test;
+import java.lang.reflect.Field;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 
 import java.time.Duration;
@@ -20,9 +21,18 @@ class KafkaConsumerConfigTest {
                 Duration.ofMinutes(6)
         );
 
+        KafkaConsumerConfig config = new KafkaConsumerConfig();
+        try {
+            Field f = KafkaConsumerConfig.class.getDeclaredField("bootstrapServers");
+            f.setAccessible(true);
+            f.set(config, "localhost:9092");
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
         DefaultKafkaConsumerFactory<String, InvoiceProcessingRequested> factory =
                 (DefaultKafkaConsumerFactory<String, InvoiceProcessingRequested>)
-                        new KafkaConsumerConfig().consumerFactory(retryPolicy);
+                        config.consumerFactory(retryPolicy);
 
         assertEquals(
                 false,

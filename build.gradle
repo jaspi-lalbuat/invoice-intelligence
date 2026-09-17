@@ -47,10 +47,10 @@ tasks.named('test') {
         if (!project.hasProperty('ollama')) {
             excludeTags 'ollama'
         }
+        // Exclude OCR integration tests by tag to keep the standard test task fast and deterministic
+        excludeTags 'ocr'
     }
     systemProperty 'spring.profiles.active', 'test'
-    exclude '**/*OcrTextExtractorIntegrationTest.class'
-    exclude '**/*FallbackDocumentTextExtractorIntegrationTest.class'
 }
 
 tasks.register('ocrTest', Test) {
@@ -60,13 +60,21 @@ tasks.register('ocrTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
 
-    useJUnitPlatform()
+    useJUnitPlatform {
+        includeTags 'ocr'
+    }
     systemProperty 'spring.profiles.active', 'test'
 
-    filter {
-        includeTestsMatching '*OcrTextExtractorIntegrationTest'
-        includeTestsMatching '*FallbackDocumentTextExtractorIntegrationTest'
+    doFirst {
+        def tess = System.getenv('TESSDATA_PREFIX')
+        if (tess == null || tess.toString().trim().isEmpty()) {
+            throw new GradleException("TESSDATA_PREFIX must be set in the environment to run ocrTest. Set it to your tessdata directory path.")
+        }
     }
+
+    // Ensure the test JVM inherits the environment variable so the application properties resolve ${TESSDATA_PREFIX}
+    environment 'TESSDATA_PREFIX', System.getenv('TESSDATA_PREFIX')
 
     forkEvery = 1
 }
+

@@ -1,6 +1,7 @@
 package com.jasper.invoice.infrastructure.document;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -11,6 +12,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@Tag("ocr")
 class OcrTextExtractorIntegrationTest {
 
     @Autowired
