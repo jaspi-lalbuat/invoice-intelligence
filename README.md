@@ -66,7 +66,7 @@ docker compose up -d backend
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     UI[Next.js Frontend]
     API[Spring Boot API]
     DB[(PostgreSQL)]
