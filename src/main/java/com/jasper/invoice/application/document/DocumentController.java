@@ -97,6 +97,23 @@ public class DocumentController {
                 .toList();
     }
 
+    @GetMapping("/{jobId}/file")
+    public ResponseEntity<org.springframework.core.io.InputStreamResource> downloadOriginalFile(
+            @PathVariable UUID jobId
+    ) throws IOException {
+        com.jasper.invoice.domain.model.InvoiceProcessingJob job = processingService.getJob(jobId);
+
+        java.io.InputStream stream = processingService.loadDocument(jobId);
+        org.springframework.core.io.InputStreamResource resource = new org.springframework.core.io.InputStreamResource(stream);
+
+        String fileName = job.originalFileName() == null ? ("invoice-" + job.documentReference() + ".pdf") : job.originalFileName();
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName.replaceAll("\"","\'") + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+    }
+
     @PostMapping("/{jobId}/retry")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void retry(

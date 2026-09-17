@@ -3,7 +3,7 @@ import {
   InvoiceSummary,
 } from "./invoice";
 
-const API_BASE_URL = "http://localhost:8080";
+export const API_BASE_URL = "http://localhost:8080";
 
 export async function getInvoices(): Promise<InvoiceSummary[]> {
   const response = await fetch(
@@ -76,4 +76,8 @@ export async function retryInvoice(
       `Retry failed (${response.status})`,
     );
   }
+}
+
+export function downloadInvoiceUrl(jobId: string) {
+  return `${API_BASE_URL}/api/v1/documents/${jobId}/file`;
 }

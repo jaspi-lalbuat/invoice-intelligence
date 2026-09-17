@@ -44,6 +44,9 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
       OLLAMA_MODEL: "gemma3:12b"
+      DOCUMENT_STORAGE_PATH: "/app/storage/documents"
+    volumes:
+      - ./storage:/app/storage
     ports:
       - "8080:8080"
     depends_on:

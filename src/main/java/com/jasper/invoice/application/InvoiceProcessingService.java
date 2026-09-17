@@ -65,6 +65,11 @@ public class InvoiceProcessingService {
                 .orElseThrow(() -> new InvoiceProcessingJobNotFoundException(jobId));
     }
 
+    public java.io.InputStream loadDocument(UUID jobId) throws java.io.IOException {
+        InvoiceProcessingJob job = getJob(jobId);
+        return documentStorage.load(job.documentReference());
+    }
+
     public void retryJob(UUID jobId) {
         queueManagementService.retryJob(jobId);
     }

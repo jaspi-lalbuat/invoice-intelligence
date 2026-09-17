@@ -22,7 +22,8 @@ import {
   getInvoice,
   getInvoices,
   uploadInvoice,
-  retryInvoice
+  retryInvoice,
+  API_BASE_URL,
 } from "./lib/api";
 
 export default function Home() {
@@ -468,6 +469,25 @@ export default function Home() {
                         }
                       </p>
                     )}
+                  </div>
+
+                  <div className="flex gap-2">
+                  <a
+                    href={
+                      selectedJobId
+                        ? `${API_BASE_URL}/api/v1/documents/${selectedJobId}/file`
+                        : undefined
+                    }
+                    download={selectedSummary?.originalFileName ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Download original file"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 15v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                  </a>
                   </div>
 
                   <button

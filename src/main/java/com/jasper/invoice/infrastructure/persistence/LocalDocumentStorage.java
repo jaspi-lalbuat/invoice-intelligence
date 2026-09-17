@@ -3,6 +3,7 @@ package com.jasper.invoice.infrastructure.persistence;
 import com.jasper.invoice.application.document.port.DocumentStorage;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -12,10 +13,16 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 @Component
+
 public class LocalDocumentStorage implements DocumentStorage {
 
-    private final Path storageDirectory =
-            Path.of("storage/documents");
+    private final Path storageDirectory;
+
+    public LocalDocumentStorage(
+            @Value("${document.storage.path:storage/documents}") String storagePath
+    ) {
+        this.storageDirectory = Path.of(storagePath);
+    }
 
     @Override
     public String store(MultipartFile file) throws IOException {
