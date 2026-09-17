@@ -39,5 +39,15 @@ out/
 # Runtime document storage
 storage/
 
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# environment
+.env
+.env.*
+
 # macOS
 .DS_Store
