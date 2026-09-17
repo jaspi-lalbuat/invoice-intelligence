@@ -76,6 +76,9 @@ This keeps infrastructure replaceable without putting infrastructure concerns in
 
 ## 3. High-level architecture
 
+The presentation layer is a thin Next.js frontend over the backend APIs. It displays the processing queue, current job state, validation results, invoice details, and technical job metadata; it does not own processing state or business rules.
+
+
 ```mermaid
 flowchart LR
     Client[HTTP client] --> API[DocumentController]
@@ -438,8 +441,15 @@ A stale worker therefore cannot increment retries or fail a job after ownership 
 Manual retry is intentionally separate from automatic retry:
 
 ```text
-FAILED → QUEUED
+FAILED
+  |
+  v
+QUEUED
+  |
+  +--> InvoiceProcessingRequested outbox event
 ```
+
+The `FAILED -> QUEUED` state transition and the corresponding outbox event are persisted in the same database transaction.
 
 The retry endpoint does not retry an already successful or reviewable job.
 

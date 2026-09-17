@@ -1,186 +1,582 @@
 # Invoice Intelligence
 
-Invoice Intelligence is a Java/Spring Boot portfolio project that turns PDF invoices into structured invoice data while keeping document interpretation and business validation deliberately separate. It demonstrates backend reliability patterns around asynchronous AI work: transactional outbox publishing, at-least-once delivery, database-backed claiming, leases, retries, and fenced completion.
+An asynchronous invoice-processing platform built with Java and Spring Boot that turns PDF invoices into structured, validated data.
 
-## Problem
+The system combines document extraction, OCR, and LLM-based interpretation with deterministic business validation. The interesting part is the processing infrastructure around the AI workload: transactional outbox, at-least-once delivery, concurrent database-backed job claiming, leases, fenced completion, automatic retry, and explicit manual retry.
 
-Invoice documents are heterogeneous: some contain selectable text, others are scans, and extracted fields can be incomplete or inconsistent. A useful system needs more than an LLM call: it must process documents asynchronously, survive duplicate messages and worker failures, and make validation decisions deterministically.
+## What it does
 
-## Key capabilities
+Upload a PDF invoice and the platform:
 
-- Accept PDF invoices and create asynchronous processing jobs.
-- Extract native PDF text first, then fall back to OCR for scanned PDFs.
-- Send normalized document text to an Ollama-backed LLM adapter for structured invoice extraction.
-- Validate required fields, line items, subtotal arithmetic, tax-inclusive totals, and discrepancies in deterministic Java code.
-- Persist `READY` invoices when validation is valid and `REVIEW_REQUIRED` invoices when the result needs human attention.
-- Expose job status and allow explicit retry of terminally failed jobs.
+1. Creates a durable processing job.
+2. Stores the PDF.
+3. Publishes an `InvoiceProcessingRequested` event through a transactional outbox.
+4. Extracts text from the document.
+5. Falls back to OCR when normal PDF text extraction is insufficient.
+6. Sends extracted content to an LLM for structured invoice interpretation.
+7. Validates the extracted invoice deterministically in Java.
+8. Produces one of three terminal outcomes:
+    - `READY`
+    - `REVIEW_REQUIRED`
+    - `FAILED`
+
+The frontend provides a thin presentation layer over the real backend APIs, including processing status, validation results, invoice details, line items, totals, and technical job information.
 
 ## Architecture
 
-The project is split into three practical boundaries:
-
-- **Domain** owns the invoice model, processing lifecycle, validation rules, repository contracts, and outbox event model.
-- **Application** coordinates use cases: submission, job creation, outbox publication, claiming, recovery, processing, and document orchestration. It depends on ports such as document storage, invoice extraction, event publishing, and processing ownership.
-- **Infrastructure** adapts those ports to PostgreSQL/JPA, Kafka, local file storage, PDFBox, Tess4J/Tesseract, and Ollama over HTTP.
-
 ```mermaid
-flowchart TB
-    Client[HTTP client] --> API[DocumentController]
-    API --> Submit[InvoiceProcessingService]
-    Submit --> Storage[Local document storage]
-    Submit --> Create[InvoiceJobCreationService]
-    Create --> DB[(PostgreSQL<br/>jobs + outbox)]
+flowchart LR
+    UI[Next.js Frontend]
+    API[Spring Boot API]
+    DB[(PostgreSQL)]
+    OUTBOX[(Transactional Outbox)]
+    KAFKA[Kafka]
+    WORKER[Invoice Processing Worker]
+    PDF[PDF Text Extraction]
+    OCR[OCR Fallback]
+    LLM[LLM / Ollama]
+    VALIDATE[Deterministic Validation]
 
-    DB --> Outbox[Outbox publishing poller]
-    Outbox --> Kafka[(Kafka<br/>invoice-processing)]
-    Kafka --> Consumer[Kafka consumer]
-    Consumer --> Claim[QueueManagementService<br/>claim + lease]
-    Claim --> DB
-    Claim --> Worker[InvoiceProcessingWorker]
+    UI -->|Upload PDF| API
+    API -->|Persist job + outbox event| DB
+    API -->|Read job status/results| DB
 
-    Worker --> Storage
-    Worker --> Docs[DocumentService]
-    Docs --> PDF[PDF text extraction]
-    PDF --> OCR[OCR fallback]
-    OCR --> Normalize[Text normalization]
-    Normalize --> LLM[Ollama adapter]
-    LLM --> Validate[Deterministic validation]
-    Validate --> Fence[Fenced completion]
-    Fence --> DB
+    OUTBOX --> KAFKA
+    KAFKA --> WORKER
+
+    WORKER -->|Claim job| DB
+    WORKER --> PDF
+    PDF -->|Insufficient text| OCR
+    PDF -->|Extracted text| LLM
+    OCR --> LLM
+    LLM --> VALIDATE
+    VALIDATE -->|Persist result| DB
 ```
+
+PostgreSQL is the authoritative source of job state. Kafka is used for asynchronous delivery and triggering work; it is not the source of truth for processing state.
 
 ## End-to-end processing flow
 
-1. `POST /api/v1/documents` validates and stores the uploaded PDF, then creates a `QUEUED` job and an `InvoiceProcessingRequested` outbox record in one database transaction.
-2. In Kafka mode, the outbox poller publishes unpublished records to the `invoice-processing` topic and marks them published only after the send succeeds.
-3. The Kafka consumer claims the requested job. The database claim changes the job to `PROCESSING`, sets a lease, and assigns a unique processing attempt ID.
-4. The worker loads the stored document, extracts PDF text or uses OCR when the PDF has no usable text, normalizes the result, and calls the invoice-extraction port.
-5. The Ollama adapter asks the configured model to return structured invoice JSON. Java maps that response into the domain model.
-6. Deterministic validation decides whether the completed job becomes `READY` or `REVIEW_REQUIRED`.
-7. Completion is accepted only when the stored processing attempt ID still matches the worker's claim. A late worker's result is discarded.
+```text
+Client
+  |
+  | POST /api/v1/documents
+  v
+Create Job
+  |
+  +--> PostgreSQL: job = QUEUED
+  |
+  +--> PostgreSQL: outbox event
+             |
+             v
+        Outbox Publisher
+             |
+             v
+           Kafka
+             |
+             v
+      Processing Consumer
+             |
+             v
+       Claim QUEUED Job
+             |
+             v
+         PROCESSING
+             |
+             +--> PDF text extraction
+             |       |
+             |       +--> enough text --> continue
+             |       |
+             |       +--> insufficient --> OCR
+             |
+             v
+       LLM extraction
+             |
+             v
+   Deterministic validation
+             |
+             +--> valid ------> READY
+             |
+             +--> issues -----> REVIEW_REQUIRED
+             |
+             +--> terminal failure -> FAILED
+```
 
-## Reliability decisions
+## Reliability model
 
-**PostgreSQL is authoritative.** The database stores the durable job lifecycle, extracted invoice/validation JSON, lease, retry count, and attempt ID. Kafka delivers work; it does not decide the current state of an invoice.
+The project is deliberately designed around the fact that asynchronous processing can fail at every boundary.
 
-**Transactional outbox prevents a split write.** A job and its processing-request event are persisted together. If the transaction rolls back, neither becomes visible. If Kafka is temporarily unavailable later, the unpublished event remains available for a later poll.
+### Transactional outbox
 
-**Delivery is at least once by design.** An event can be sent again if publication succeeds but recording `publishedAt` fails. That is safe because workers claim from the authoritative job record rather than trusting message uniqueness.
+Job creation and the corresponding processing event are persisted in the same database transaction.
 
-**`FOR UPDATE SKIP LOCKED` enables concurrent job claiming.** Competing workers can claim different available queued rows without waiting on rows already locked by another transaction. This avoids double claims without serializing the entire queue.
+```text
+BEGIN
+  INSERT processing_job
+  INSERT outbox_event
+COMMIT
+```
 
-**Attempt IDs fence stale workers.** A recovered or reclaimed job receives a new attempt ID. Completion and retry/fail updates include that ID in their conditional update, so an earlier worker cannot overwrite newer state after a lease expiry.
+The application does not perform:
 
-**Leases recover abandoned work.** Processing jobs have a configured five-minute lease. The recovery poller requeues expired leases, while the Ollama HTTP timeout is four minutes and Kafka's maximum poll interval is six minutes. This bounds the expected processing time without requiring lease renewal.
+```text
+INSERT job
+publish Kafka event
+```
 
-**Retry and failure are explicit.** Processing exceptions retry automatically up to the configured limit (three), then become `FAILED`. Kafka uses manual acknowledgment with auto-commit disabled: a retryable processing failure nacks the record for redelivery; completed, terminal, or stale work is acknowledged.
+as two independent operations.
+
+If the transaction commits, the event is durable and can be published later by the outbox publisher.
+
+### At-least-once delivery
+
+Outbox publication is intentionally at-least-once.
+
+A publisher can successfully send an event to Kafka and fail before recording the event as published. The same event may therefore be published again.
+
+The consumer is designed around this reality rather than assuming exactly-once delivery.
+
+### Concurrent job claiming
+
+Workers claim queued jobs using PostgreSQL row locking with:
+
+```sql
+FOR UPDATE SKIP LOCKED
+```
+
+This allows multiple workers to safely compete for work without blocking on rows already claimed by another worker.
+
+The claim operation changes the job to `PROCESSING` and assigns a unique `processing_attempt_id`.
+
+### Leases
+
+A processing attempt has a lease.
+
+If a worker crashes or becomes stuck after claiming a job, the lease can expire and the job can be recovered.
+
+This prevents a permanently abandoned `PROCESSING` job.
+
+### Fenced completion
+
+Every processing attempt receives a unique attempt identifier.
+
+Completion, retry, and failure updates are conditional on both:
+
+```text
+status = PROCESSING
+processing_attempt_id = current attempt
+```
+
+An old worker therefore cannot overwrite the result of a newer worker after its lease has expired and the job has been reclaimed.
+
+### Automatic retry
+
+Transient processing failures can return a job to `QUEUED` while the automatic retry limit has not been reached.
+
+After the retry limit is exhausted, the job becomes `FAILED`.
+
+### Manual retry
+
+A terminal `FAILED` job can be retried explicitly through the API.
+
+Manual retry performs:
+
+```text
+FAILED
+  |
+  v
+QUEUED
+  |
+  +--> durable InvoiceProcessingRequested outbox event
+```
+
+The retry state transition and event creation are committed in the same transaction, preserving the transactional-outbox guarantee.
+
+## Processing lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> QUEUED
+
+    QUEUED --> PROCESSING: worker claims job
+
+    PROCESSING --> READY: extraction + validation succeed
+    PROCESSING --> REVIEW_REQUIRED: validation finds issues
+    PROCESSING --> QUEUED: retryable failure + retries remaining
+    PROCESSING --> FAILED: terminal failure / retry limit reached
+
+    FAILED --> QUEUED: manual retry
+```
 
 ## AI and document pipeline
 
-The LLM is used for **interpretation**, not business truth. It receives normalized text and returns candidate invoice fields. The Ollama-specific HTTP client is an infrastructure adapter behind the application `InvoiceExtractor` port.
+The AI component is deliberately treated as an untrusted interpreter rather than the authority for business correctness.
 
-1. PDFBox reads embedded text.
-2. If no usable text is present, PDF pages are rendered at 200 DPI and passed to Tesseract through Tess4J.
-3. Whitespace and line endings are normalized before extraction.
-4. Java validation checks the extracted result independently of the model.
+### Document extraction
 
-The current API accepts **PDF documents only**. OCR exists to handle scanned content inside those PDFs.
+The pipeline first attempts normal PDF text extraction.
 
-## Domain lifecycle and validation
+For scanned or image-based invoices where extracted text is insufficient, the system falls back to OCR.
+
+OCR is isolated from the normal test JVM because native OCR dependencies can behave differently from ordinary Java tests.
+
+### LLM extraction
+
+The LLM receives extracted document content and produces structured invoice information.
+
+The LLM is responsible for interpretation:
 
 ```text
-QUEUED → PROCESSING → READY
-                    ↘ REVIEW_REQUIRED
-                    ↘ FAILED → QUEUED  (explicit retry)
+PDF content -> structured invoice fields
 ```
 
-- `READY` means extraction completed and validation is `VALID`.
-- `REVIEW_REQUIRED` means processing completed but deterministic validation found missing or inconsistent information.
-- `FAILED` means processing exhausted automatic retries or reached terminal operational failure.
+It is not responsible for deciding whether those fields are mathematically or commercially valid.
+
+### Deterministic validation
+
+Java performs deterministic checks on the extracted data.
+
+Examples include:
+
+- required fields
+- invoice totals
+- subtotal calculations
+- tax calculations
+- line-item arithmetic
+- consistency between extracted values
+
+This creates a clear boundary:
+
+```text
+LLM
+  |
+  | interpretation
+  v
+Structured invoice
+  |
+  | deterministic business validation
+  v
+Validated result
+```
+
+An LLM response is therefore never treated as inherently trustworthy just because the model produced it.
+
+## Domain model
+
+The core aggregate is `InvoiceProcessingJob`.
+
+The job owns the processing lifecycle and protects the valid state transitions.
+
+The invoice result contains domain concepts such as:
+
+- `Invoice`
+- `InvoiceLineItem`
+- `Party`
+- `TaxBreakdown`
+- validation results
+- validation issues
+
+The processing state is represented in the domain layer so application and infrastructure code depend on domain concepts rather than the other way around.
+
+### DDD decisions
+
+The project uses a focused set of Domain-Driven Design concepts rather than attempting to model every class as a domain object.
+
+**Aggregate Root**
+
+`InvoiceProcessingJob` is the aggregate root because processing state, retry behavior, and attempt ownership need a single consistency boundary.
+
+**Value-oriented domain data**
+
+Invoice concepts such as parties, tax breakdowns, and line items represent domain information rather than infrastructure concerns.
+
+**Application services**
+
+Application services orchestrate use cases such as job creation, queue management, processing, and retrieval. They coordinate repositories and external ports without moving infrastructure concerns into the domain model.
+
+**Ports and adapters**
+
+External concerns such as document storage, OCR, LLM extraction, event publishing, and persistence are represented behind application/domain-facing interfaces and implemented by infrastructure adapters.
+
+## Persistence
+
+PostgreSQL stores the authoritative processing state.
+
+The persistence model includes information required for:
+
+- invoice processing jobs
+- processing attempts
+- invoice results
+- validation results
+- outbox events
+- timestamps and leases
+
+JPA/Hibernate is used for persistence while the domain model remains separate from the persistence entities.
+
+The database is intentionally involved in concurrency control rather than relying only on in-memory synchronization.
+
+## API
+
+### Upload an invoice
+
+```http
+POST /api/v1/documents
+Content-Type: multipart/form-data
+```
+
+The endpoint accepts a PDF document and returns a processing job.
+
+### Get a job
+
+```http
+GET /api/v1/documents/{jobId}
+```
+
+Returns processing status and, when available, the extracted invoice and validation result.
+
+### List jobs
+
+```http
+GET /api/v1/documents
+```
+
+Returns invoice-processing job summaries, newest first.
+
+### Retry a failed job
+
+```http
+POST /api/v1/documents/{jobId}/retry
+```
+
+Moves a `FAILED` job back to `QUEUED` and creates a durable processing event through the transactional outbox.
 
 ## Technology stack
 
-- Java 21 and Spring Boot
-- Spring Web, Spring Data JPA, Spring Kafka, Spring scheduling for outbox and recovery pollers
-- PostgreSQL with Hibernate/JPA and JSONB columns
-- Apache Kafka, PDFBox 3, Tess4J / Tesseract OCR
-- Ollama via Spring `RestClient`
-- Jackson, Gradle, JUnit 5, Mockito, AssertJ, Awaitility
+### Backend
+
+- Java 21
+- Spring Boot 4.1.1
+- Spring Data JPA / Hibernate
+- Gradle
+- PostgreSQL
+- Apache Kafka
+- PDFBox
+- Tess4J / Tesseract
+- Ollama
+- Jackson
+
+### Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
 
 ## Local setup
 
-The application is not Dockerized. Docker Compose is provided only for Kafka.
+### Prerequisites
+
+Install:
+
+- Java 21
+- Gradle or use the Gradle wrapper
+- PostgreSQL
+- Kafka
+- Ollama
+- Node.js
+
+The frontend requires a recent Node.js release compatible with the current Next.js project.
+
+### PostgreSQL
+
+Create the application database and user using an administrative PostgreSQL account.
+
+For example:
+
+```sql
+CREATE USER invoice WITH PASSWORD 'invoice';
+CREATE DATABASE invoice_intelligence OWNER invoice;
+```
+
+Configure the application datasource in:
+
+```text
+src/main/resources/application.yml
+```
+
+The test suite uses a separate database configured in:
+
+```text
+src/test/resources/application-test.yml
+```
+
+This prevents normal integration tests from writing to the development database.
+
+### Kafka
+
+Start a local Kafka broker.
+
+The application expects Kafka to be available according to the broker configuration in `application.yml`.
+
+### Ollama
+
+Start Ollama and make the configured model available locally.
+
+The application uses Ollama through its HTTP API for invoice extraction.
+
+### Run the backend
 
 ```bash
-psql -U postgres -d postgres -c "CREATE ROLE invoice LOGIN PASSWORD 'invoice';"
-psql -U postgres -d postgres -c "CREATE DATABASE invoice_intelligence OWNER invoice;"
-
-docker compose -f docker/kafka/compose.yml up -d
-
-# terminal 1
-ollama serve
-
-# terminal 2
-ollama pull gemma3:12b
-
-export TESSDATA_PREFIX=/path/to/tessdata
-
 ./gradlew bootRun
 ```
 
-Prerequisites: Java 21, PostgreSQL on `localhost:5432`, Docker, Ollama, and Tesseract data containing `eng.traineddata`.
-
-Defaults are PostgreSQL `jdbc:postgresql://localhost:5432/invoice_intelligence`, Kafka `localhost:9092`, Ollama `http://localhost:11434`, processing mode `kafka`, and HTTP port `8080`.
-
-## Example API usage
+### Run the frontend
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/documents   -F "file=@/absolute/path/to/invoice.pdf;type=application/pdf"
+cd frontend
+npm install
+npm run dev
 ```
 
-Response:
+The frontend is available at:
 
-```json
-{ "jobId": "<uuid>" }
+```text
+http://localhost:3000
 ```
 
-```bash
-curl http://localhost:8080/api/v1/documents/<uuid>
+The backend is available at:
 
-curl -X POST http://localhost:8080/api/v1/documents/<uuid>/retry
-
-curl -X POST http://localhost:8080/api/v1/documents/extract-text   -F "file=@/absolute/path/to/invoice.pdf"
-
-curl -X POST http://localhost:8080/api/v1/documents/extract-invoice   -F "file=@/absolute/path/to/invoice.pdf"
+```text
+http://localhost:8080
 ```
-
-A job response contains `jobId`, `status`, `invoice`, `validation`, `createdAt`, and `updatedAt`. Retrying a non-failed job returns `409`; an unknown job returns `404`.
 
 ## Testing
 
-The repository contains focused tests for transactional job/outbox creation and rollback, PostgreSQL persistence, concurrent claiming, expired lease recovery, stale-worker fencing, Kafka retry delivery, controller states, validation, OCR fallback, and real-Ollama extraction.
+The standard test suite covers the application without requiring a running Ollama instance or native OCR execution.
 
-The standard test suite excludes the native OCR and real-Ollama integration tests by design. These can be run separately:
+Run:
 
 ```bash
 ./gradlew test
+```
+
+OCR integration tests are isolated because Tesseract/native dependencies can terminate the JVM independently of ordinary Java test failures.
+
+Run OCR integration tests with:
+
+```bash
 ./gradlew ocrTest
+```
+
+Ollama-tagged tests can be enabled explicitly with:
+
+```bash
 ./gradlew test -Pollama
 ```
 
-OCR tests require local Tesseract data. Real-Ollama tests are opt-in because they require a running local Ollama instance and model.
+The test database is separate from the normal development database.
 
-## Scope and future work
+The project intentionally does not optimize for a coverage percentage. Tests focus on behavioral and architectural correctness, particularly around:
 
-This is a portfolio-focused implementation of reliable asynchronous invoice processing.
+- job lifecycle transitions
+- concurrent claiming
+- retry behavior
+- processing-attempt fencing
+- lease recovery
+- transactional outbox behavior
+- deterministic validation
+- document/OCR boundaries
 
-Potential future production hardening includes:
+## Example workflow
 
-- database migrations
-- application containerization
-- managed document storage
-- authentication and authorization
-- upload-size limits
-- operational observability
+Upload a PDF:
 
-These are not current capabilities.
+```bash
+curl -X POST \
+  -F "file=@invoice.pdf" \
+  http://localhost:8080/api/v1/documents
+```
+
+The response provides the processing job ID.
+
+Then query:
+
+```bash
+curl \
+  http://localhost:8080/api/v1/documents/{jobId}
+```
+
+A job may progress through:
+
+```text
+QUEUED
+PROCESSING
+READY
+```
+
+or:
+
+```text
+QUEUED
+PROCESSING
+REVIEW_REQUIRED
+```
+
+or, after terminal failure:
+
+```text
+QUEUED
+PROCESSING
+FAILED
+```
+
+A failed job can be manually retried:
+
+```bash
+curl -X POST \
+  http://localhost:8080/api/v1/documents/{jobId}/retry
+```
+
+## Scope
+
+This project intentionally focuses on demonstrating production-oriented backend engineering around asynchronous AI document processing.
+
+It does not attempt to be a complete enterprise invoice platform.
+
+Out of scope for the current implementation:
+
+- multi-tenant authorization
+- enterprise identity management
+- cloud deployment automation
+- distributed tracing infrastructure
+- billing
+- human approval workflows
+- arbitrary document formats beyond PDF invoices
+- model training or fine-tuning
+
+Possible future extensions include:
+
+- object storage such as GCS/S3
+- cloud-managed Kafka
+- OpenTelemetry tracing
+- authentication and multi-tenancy
+- richer human-review workflows
+- production deployment manifests
+- additional document types
+
+## Why this project exists
+
+The project is designed to demonstrate a specific engineering idea:
+
+> AI extraction is only one part of a reliable AI application.
+
+The harder engineering problems are often around the AI boundary:
+
+- What happens when processing fails?
+- What happens when a worker crashes?
+- What happens when a message is delivered twice?
+- What happens when a lease expires?
+- What happens when an old worker finishes after another worker has reclaimed the job?
+- What happens when an LLM returns structurally valid but mathematically incorrect data?
+
+Invoice Intelligence answers those questions with explicit persistence, concurrency, retry, and validation mechanisms rather than relying on optimistic assumptions about external systems.
