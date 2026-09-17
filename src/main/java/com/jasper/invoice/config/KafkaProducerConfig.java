@@ -16,13 +16,16 @@ import java.util.Map;
 @Configuration
 public class KafkaProducerConfig {
 
+    @org.springframework.beans.factory.annotation.Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @Bean
     public ProducerFactory<String, InvoiceProcessingRequested> producerFactory() {
         Map<String, Object> properties = new HashMap<>();
 
         properties.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
+                bootstrapServers
         );
         properties.put(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,

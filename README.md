@@ -580,3 +580,30 @@ The harder engineering problems are often around the AI boundary:
 - What happens when an LLM returns structurally valid but mathematically incorrect data?
 
 Invoice Intelligence answers those questions with explicit persistence, concurrency, retry, and validation mechanisms rather than relying on optimistic assumptions about external systems.
+
+## Docker
+
+This repository includes Dockerfiles for the backend and frontend plus a docker-compose.yml to run a local development stack (Postgres + Zookeeper + Kafka + backend + frontend).
+
+Quick start:
+
+1. Build and start the stack:
+
+   docker-compose up --build
+
+2. Backend: http://localhost:8080
+3. Frontend: http://localhost:3000
+
+Environment variables configured for the containerized backend (override as needed):
+
+- SPRING_DATASOURCE_URL — jdbc:postgresql://db:5432/invoice_intelligence
+- SPRING_DATASOURCE_USERNAME — invoice
+- SPRING_DATASOURCE_PASSWORD — invoice
+- SPRING_KAFKA_BOOTSTRAP_SERVERS — kafka:9092
+
+Notes:
+
+- Ollama is not included in docker-compose; start it locally as required by AI extraction tests or configure an accessible LLM endpoint.
+- Kafka in this compose is single-node for development only; do not use in production.
+- To run tests inside the container, extend the Dockerfile or run the Gradle wrapper in a throwaway container.
+
