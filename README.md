@@ -22,6 +22,47 @@ Upload a PDF invoice and the platform:
 
 The frontend provides a thin presentation layer over the real backend APIs, including processing status, validation results, invoice details, line items, totals, and technical job information.
 
+## Quick start (Docker)
+
+Docker is the primary local quick-start for this repository.
+
+Start the full development stack (PostgreSQL, Kafka, backend, frontend):
+
+```bash
+docker compose up --build
+```
+
+- Frontend: http://localhost:3000
+- Backend:  http://localhost:8080
+
+What Compose starts (local development):
+
+- PostgreSQL 15 (service name: `db`, exposed on host: `localhost:5432`) — database: `invoice_intelligence`, user: `invoice`, password: `invoice`.
+- Apache Kafka 4.x in KRaft mode (service name: `kafka`) — container networking: `kafka:9092`; host access for tools is available at `localhost:29092`.
+- Spring Boot backend (built with the project's Gradle wrapper on Java 21) — listens on port 8080.
+- Next.js frontend (production standalone build) — listens on port 3000.
+
+Important notes:
+
+- Kafka is configured in KRaft mode in docker-compose.yml.
+- The backend uses the environment variable `SPRING_KAFKA_BOOTSTRAP_SERVERS` (compose sets `kafka:9092`) so containers talk to Kafka via `kafka:9092`.
+- Ollama (the local LLM runtime) is intentionally NOT included in docker compose. The application configuration expects Ollama at `http://localhost:11434` by default and the configured model in this repository is `gemma3:12b` (see `src/main/resources/application.yml`). Start Ollama locally if you need the LLM extraction path.
+- To reset the local development database/state (destroys PostgreSQL volume):
+
+```bash
+docker compose down -v
+```
+
+(Optional) If you only want to rebuild a single service:
+
+```bash
+docker compose build backend
+docker compose up -d backend
+```
+
+(See the Dockerfile for exact build/runtime behavior of each service.)
+
+
 ## Architecture
 
 ```mermaid
@@ -372,7 +413,7 @@ Moves a `FAILED` job back to `QUEUED` and creates a durable processing event thr
 - TypeScript
 - Tailwind CSS
 
-## Local setup
+## Local development without Docker
 
 ### Prerequisites
 
@@ -581,29 +622,11 @@ The harder engineering problems are often around the AI boundary:
 
 Invoice Intelligence answers those questions with explicit persistence, concurrency, retry, and validation mechanisms rather than relying on optimistic assumptions about external systems.
 
-## Docker
+## Docker implementation
 
-This repository includes Dockerfiles for the backend and frontend plus a docker-compose.yml to run a local development stack (Postgres + Zookeeper + Kafka + backend + frontend).
+- Backend Dockerfile: builds the Spring Boot fat JAR using the project's Gradle wrapper (the image uses Java 21) and runs the JAR on port 8080. See `Dockerfile` at the repository root for exact build steps.
 
-Quick start:
+- Frontend Dockerfile: performs a multi-stage Next.js production build (`npm ci` + `npm run build`) and runs the Next.js standalone output (`server.js`) on port 3000. See `frontend/Dockerfile` for exact details.
 
-1. Build and start the stack:
-
-   docker-compose up --build
-
-2. Backend: http://localhost:8080
-3. Frontend: http://localhost:3000
-
-Environment variables configured for the containerized backend (override as needed):
-
-- SPRING_DATASOURCE_URL — jdbc:postgresql://db:5432/invoice_intelligence
-- SPRING_DATASOURCE_USERNAME — invoice
-- SPRING_DATASOURCE_PASSWORD — invoice
-- SPRING_KAFKA_BOOTSTRAP_SERVERS — kafka:9092
-
-Notes:
-
-- Ollama is not included in docker-compose; start it locally as required by AI extraction tests or configure an accessible LLM endpoint.
-- Kafka in this compose is single-node for development only; do not use in production.
-- To run tests inside the container, extend the Dockerfile or run the Gradle wrapper in a throwaway container.
+These Dockerfiles are intended for local development and a quick, reproducible environment — they are not optimized for production deployment.
 
