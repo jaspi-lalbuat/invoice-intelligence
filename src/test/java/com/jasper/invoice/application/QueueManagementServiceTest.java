@@ -1,19 +1,23 @@
 package com.jasper.invoice.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
 import com.jasper.invoice.domain.model.InvalidProcessingStateException;
-import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
+import com.jasper.invoice.domain.model.ProcessingStatus;
+import com.jasper.invoice.domain.outbox.OutboxEvent;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
-import org.junit.jupiter.api.Test;
+import com.jasper.invoice.domain.repository.OutboxEventRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +34,12 @@ class QueueManagementServiceTest {
     private ProcessingOwnershipStore ownershipStore;
     @Mock
     private ProcessingRetryPolicy retryPolicy;
+
+    @Mock
+    private OutboxEventRepository outboxEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private QueueManagementService service;
@@ -89,7 +99,7 @@ class QueueManagementServiceTest {
     }
 
     @Test
-    void shouldRetryFailedJob() {
+    void shouldRetryFailedJob() throws JsonProcessingException {
         UUID jobId = UUID.randomUUID();
 
         InvoiceProcessingJob job =
@@ -100,6 +110,9 @@ class QueueManagementServiceTest {
 
         when(repository.findById(jobId))
                 .thenReturn(Optional.of(job));
+        when(repository.save(job)).thenReturn(job);
+        when(objectMapper.writeValueAsString(any(InvoiceProcessingRequested.class)))
+                .thenReturn("{}");
 
         service.retryJob(jobId);
 
@@ -112,6 +125,7 @@ class QueueManagementServiceTest {
 
         verify(repository).findById(jobId);
         verify(repository).save(job);
+        verify(outboxEventRepository).save(any(OutboxEvent.class));
     }
 
     @Test

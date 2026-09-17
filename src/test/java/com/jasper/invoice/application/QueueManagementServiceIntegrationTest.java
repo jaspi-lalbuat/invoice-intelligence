@@ -1,10 +1,12 @@
 package com.jasper.invoice.application;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jasper.invoice.application.port.ProcessingOwnershipStore;
 import com.jasper.invoice.config.JacksonConfig;
 import com.jasper.invoice.domain.model.ProcessingStatus;
 import com.jasper.invoice.domain.model.InvoiceProcessingJob;
 import com.jasper.invoice.domain.repository.InvoiceProcessingJobRepository;
+import com.jasper.invoice.domain.repository.OutboxEventRepository;
 import com.jasper.invoice.infrastructure.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
     JpaInvoiceProcessingJobRepository.class,
     InvoiceProcessingJobMapper.class,
         JpaProcessingOwnershipStore.class,
-    JacksonConfig.class
+    JacksonConfig.class,
+        JpaOutboxEventRepository.class,
 })
 class QueueManagementServiceIntegrationTest {
 
@@ -47,6 +50,10 @@ class QueueManagementServiceIntegrationTest {
     private InvoiceProcessingJobRepository repository;
     @Autowired
     private ProcessingOwnershipStore ownershipStore;
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void cleanDatabase() {
