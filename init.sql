@@ -1,0 +1,1 @@
+CREATE DATABASE invoice_intelligence_test OWNER invoice;

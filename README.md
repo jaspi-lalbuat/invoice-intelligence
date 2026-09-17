@@ -413,65 +413,47 @@ Moves a `FAILED` job back to `QUEUED` and creates a durable processing event thr
 - TypeScript
 - Tailwind CSS
 
-## Local development without Docker
+## Local development (host application + Docker infrastructure)
 
-### Prerequisites
+This project supports two development modes. In both modes Docker Compose provides the infrastructure dependencies (PostgreSQL and Kafka); choose either to run the entire stack in Docker or to run the backend and frontend on the host while Compose provides database and broker services.
 
-Install:
+Full Docker Compose
 
-- Java 21
-- Gradle or use the Gradle wrapper
+Command:
+
+```bash
+docker compose up --build
+```
+
+Services started by Compose:
+
 - PostgreSQL
 - Kafka
-- Ollama
-- Node.js
+- backend
+- frontend
 
-The frontend requires a recent Node.js release compatible with the current Next.js project.
+Internal container connectivity (when running the full Compose stack):
 
-### PostgreSQL
+- backend -> PostgreSQL: `db:5432`
+- backend -> Kafka: `kafka:9092`
 
-Create the application database and user using an administrative PostgreSQL account.
+Host application + Docker infrastructure
 
-For example:
+Command (start only infrastructure services):
 
-```sql
-CREATE USER invoice WITH PASSWORD 'invoice';
-CREATE DATABASE invoice_intelligence OWNER invoice;
+```bash
+docker compose up -d db kafka
 ```
 
-Configure the application datasource in:
+Then run the application components on the host:
 
-```text
-src/main/resources/application.yml
-```
-
-The test suite uses a separate database configured in:
-
-```text
-src/test/resources/application-test.yml
-```
-
-This prevents normal integration tests from writing to the development database.
-
-### Kafka
-
-Start a local Kafka broker.
-
-The application expects Kafka to be available according to the broker configuration in `application.yml`.
-
-### Ollama
-
-Start Ollama and make the configured model available locally.
-
-The application uses Ollama through its HTTP API for invoice extraction.
-
-### Run the backend
+- Backend (host JVM):
 
 ```bash
 ./gradlew bootRun
 ```
 
-### Run the frontend
+- Frontend (host Node.js):
 
 ```bash
 cd frontend
@@ -479,17 +461,23 @@ npm install
 npm run dev
 ```
 
-The frontend is available at:
+Host connectivity when running applications on the host with Compose-provided infrastructure:
 
-```text
-http://localhost:3000
-```
+- PostgreSQL -> `localhost:5432`
+- Kafka -> `localhost:29092` (Kafka OUTSIDE listener)
+- Backend -> `http://localhost:8080`
+- Frontend -> `http://localhost:3000`
+- Ollama -> `http://localhost:11434`
 
-The backend is available at:
+Note: Kafka is still running inside Docker in the host-development mode. Host processes (the host JVM or Node) connect to Kafka through the broker's OUTSIDE listener at `localhost:29092`. When the backend is run inside the Compose backend container it connects to Kafka via `kafka:9092` as configured in the Compose environment.
 
-```text
-http://localhost:8080
-```
+Tests and test configuration
+
+- Integration/unit tests use a separate test database `invoice_intelligence_test` (configured in `src/test/resources/application-test.yml`).
+- When running tests on the host, the application/test-suite expects Kafka to be reachable at `localhost:29092`.
+- When running the backend inside Docker Compose the backend service uses `kafka:9092` for container-to-container connectivity.
+
+
 
 ## Testing
 
