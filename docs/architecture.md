@@ -80,7 +80,7 @@ The presentation layer is a thin Next.js frontend over the backend APIs. It disp
 
 
 ```mermaid
-flowchart LR
+flowchart TB
     Client[HTTP client] --> API[DocumentController]
 
     API --> Submit[InvoiceProcessingService]

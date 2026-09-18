@@ -85,6 +85,8 @@ flowchart LR
    D --> E[Worker A completes late]
    E --> F{Conditional update}
    F -->|attempt A no longer current| G[Stale result discarded]
+```
+
 
 ## Retry semantics
 
