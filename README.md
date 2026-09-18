@@ -4,6 +4,31 @@ An asynchronous invoice-processing platform built with Java and Spring Boot that
 
 The system combines document extraction, OCR, and LLM-based interpretation with deterministic business validation. The interesting part is the processing infrastructure around the AI workload: transactional outbox, at-least-once delivery, concurrent database-backed job claiming, leases, fenced completion, automatic retry, and explicit manual retry.
 
+**Stack:** Java 21 · Spring Boot · PostgreSQL · Kafka · Next.js · Ollama · PDFBox · Tesseract · Docker
+
+## Screenshots
+
+### Upload
+![Upload](docs/screenshots/upload.png)
+
+### Processing
+![Processing](docs/screenshots/processing.png)
+
+### Invoice Result
+![Invoice Result](docs/screenshots/invoice-result.png)
+
+### Review Required
+![Review Required](docs/screenshots/review-required.png)
+
+## Key engineering decisions
+
+- **PostgreSQL is authoritative** — Kafka is a delivery mechanism, not the source of processing state.
+- **Transactional outbox** — job creation and event publication intent commit atomically.
+- **At-least-once delivery** — duplicate events are expected and handled.
+- **Database-backed claiming** — workers use `FOR UPDATE SKIP LOCKED`.
+- **Lease + fencing** — stale workers cannot overwrite newer processing attempts.
+- **LLM as interpreter, not authority** — business correctness is enforced deterministically in Java.
+
 ## What it does
 
 Upload a PDF invoice and the platform:
@@ -98,49 +123,32 @@ PostgreSQL is the authoritative source of job state. Kafka is used for asynchron
 
 ## End-to-end processing flow
 
-```text
-Client
-  |
-  | POST /api/v1/documents
-  v
-Create Job
-  |
-  +--> PostgreSQL: job = QUEUED
-  |
-  +--> PostgreSQL: outbox event
-             |
-             v
-        Outbox Publisher
-             |
-             v
-           Kafka
-             |
-             v
-      Processing Consumer
-             |
-             v
-       Claim QUEUED Job
-             |
-             v
-         PROCESSING
-             |
-             +--> PDF text extraction
-             |       |
-             |       +--> enough text --> continue
-             |       |
-             |       +--> insufficient --> OCR
-             |
-             v
-       LLM extraction
-             |
-             v
-   Deterministic validation
-             |
-             +--> valid ------> READY
-             |
-             +--> issues -----> REVIEW_REQUIRED
-             |
-             +--> terminal failure -> FAILED
+```mermaid
+flowchart TB
+   CLIENT[Client / Next.js Frontend]
+   API[Spring Boot API]
+   DB[(PostgreSQL<br/>Authoritative State)]
+   PUBLISHER[Outbox Publisher]
+   KAFKA[Kafka<br/>Async Delivery]
+   CONSUMER[Processing Consumer]
+   CLAIM[Claim QUEUED Job]
+   PDF[PDF Text Extraction]
+   OCR[OCR Fallback]
+   LLM[LLM Extraction / Ollama]
+   VALIDATE[Deterministic Validation]
+
+   CLIENT -->|Upload PDF| API
+   API -->|Create Job + Outbox Event| DB
+   DB -->|Pending Outbox Events| PUBLISHER
+   PUBLISHER --> KAFKA
+   KAFKA --> CONSUMER
+   CONSUMER --> CLAIM
+   CLAIM -->|PROCESSING| PDF
+   PDF -->|Insufficient Text| OCR
+   PDF -->|Usable Text| LLM
+   OCR --> LLM
+   LLM --> VALIDATE
+   VALIDATE -->|READY / REVIEW_REQUIRED / FAILED| DB
 ```
 
 ## Reliability model
